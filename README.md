@@ -1,3 +1,4 @@
+## Analyze posts with Ollama
 ## User info (Tweetscout)
 # Twitter Scraper avec TwitScoot API
 
@@ -125,4 +126,20 @@ python tweetscout_user_info.py 44196397
 - Endpoint: GET /info/id/{user_id}
 - Auth header: ApiKey: <your_key>
 - Docs: https://api.tweetscout.io/v2/docs/#/paths/info-id-user_id/get
+
+
+### Usage
+```bash
+# Analyze 20 latest posts from a handle with a specific model
+python process_with_ollama.py @elonmusk --limit 20 --model llama3.1:8b
+
+# Output JSON
+python process_with_ollama.py 44196397 --limit 10 --json
+
+# With a custom instruction
+python process_with_ollama.py @elonmusk --limit 5 --system "Classify tone and extract main claims"
+```
+
+Assumes Ollama daemon is running at http://localhost:11434.
+If not, start with: `ollama serve` and ensure the model is available (the script attempts to `ollama pull <model>` if needed).
 
