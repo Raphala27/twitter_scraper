@@ -1,138 +1,205 @@
-from playwright.sync_api import sync_playwright
+import requests
 import json
-import argparse  # Import the argparse module
+import argparse
+import os
+from dotenv import load_dotenv
+from pathlib import Path
+import hashlib
+from datetime import datetime, timedelta
+import random
 
 
-def scrape_tweet(url: str, as_json_string: bool = False) -> str:
+def resolve_user_id(user_or_handle: str, headers: dict, mock: bool = False) -> str | None:
     """
-    Scrape a single tweet page. By default, returns the plain text of the tweet.
-    If as_json_string=True, returns the full scraped data as a JSON string.
-
-    Args:
-        url (str): The URL of the tweet to scrape.
-        as_json_string (bool): If True, returns the scraped data as a JSON string.
-                               If False (default), returns only the plain text of the tweet.
-
-    Returns:
-        str: The plain text of the tweet, or a JSON string if as_json_string is True.
+    Retourne l'ID numérique à partir d'un handle si nécessaire.
+    - Si `user_or_handle` est déjà un ID numérique, le retourne tel quel.
+    - Sinon, appelle GET /handle-to-id/{user_handle}.
     """
-    _xhr_calls = []
+    candidate = user_or_handle.strip()
+    if candidate.startswith("@"):
+        candidate = candidate[1:]
+    if candidate.isdigit():
+        return candidate
 
-    def intercept_response(response):
-        """capture all background requests and save them"""
-        if response.request.resource_type == "xhr":
-            _xhr_calls.append(response)
-        return response
+    if mock:
+        # ID stable basé sur MD5 du handle
+        h = hashlib.md5(candidate.encode("utf-8")).hexdigest()
+        return str(int(h[:12], 16) % 10_000_000_000)
+    url = f"https://api.tweetscout.io/v2/handle-to-id/{candidate}"
+    # headers doivent contenir ApiKey et Accept
+    try:
+        resp = requests.get(url, headers={"Accept": "application/json", **headers})
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        # On s'attend à un champ id ou id_str selon l'API; couvrir les deux
+        return str(data.get("id") or data.get("id_str")) if (data.get("id") or data.get("id_str")) else None
+    except Exception:
+        return None
 
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-        context = browser.new_context(viewport={"width": 1920, "height": 1080})
-        page = context.new_page()
 
-        page.on("response", intercept_response)
-        page.goto(url)
-        page.wait_for_selector("[data-testid='tweet']")
+def get_user_tweets(user_or_handle: str, limit: int = 10, as_json: bool = False, link: str = None, start_cursor: str = None, mock: bool = False) -> str:
+    """
+    Récupère les N derniers tweets d'un compte Twitter en utilisant l'API TwitScoot.
+    """
+    # Charger les variables d'environnement depuis le fichier .env
+    env_path = Path('.') / '.env'
+    if not env_path.exists():
+        return "Erreur: Le fichier .env n'existe pas dans le répertoire courant."
 
-        tweet_text = ""
-        visible_tweet_data = {}  # Still needed to construct JSON if requested
+    load_dotenv(dotenv_path=env_path)
 
-        tweet_calls = [f for f in _xhr_calls if "TweetResultByRestId" in f.url]
+    # Récupérer la clé API (optionnel en mode mock)
+    api_key = os.getenv("TWITSCOUT_API_KEY")
+    if not mock:
+        if not api_key or api_key == "YOUR_API_KEY_HERE":
+            return """Erreur: La clé API TwitScoot n'est pas définie ou est encore le placeholder.
+            
+Pour corriger cela:
+1. Obtenez votre clé API depuis https://tweetscout.io
+2. Ouvrez le fichier .env dans ce répertoire
+3. Remplacez 'YOUR_API_KEY_HERE' par votre vraie clé API
+4. Sauvegardez le fichier et relancez le script"""
 
-        for xhr in tweet_calls:
-            try:
-                data = xhr.json()
-                raw_tweet = data.get('data', {}).get('tweetResult', {}).get('result', {})
-                if not raw_tweet:
-                    continue
+    # Vérifier que la limite est valide
+    if limit < 1 or limit > 100:
+        limit = min(max(limit, 1), 100)
 
-                legacy_tweet = raw_tweet.get('legacy', {})
-                tweet_text = legacy_tweet.get('full_text', "")
+    # URL de l'API TwitScoot (corrigée selon la documentation)
+    url = "https://api.tweetscout.io/v2/user-tweets"
 
-                # Only construct the full JSON data if it's actually requested
-                if as_json_string:
-                    user_result = raw_tweet.get('core', {}).get('user_results', {}).get('result', {})
-                    user_legacy = user_result.get('legacy', {})
-                    user_core = user_result.get('core', {})
+    # En-têtes selon la documentation TwitScoot
+    headers = {
+        "Accept": "application/json",
+        "ApiKey": api_key or "mock-key",
+        "Content-Type": "application/json"
+    }
 
-                    visible_tweet_data['user'] = {
-                        'name': user_core.get('name'),
-                        'username': user_core.get('screen_name'),
-                        'profile_image_url': user_core.get('avatar', {}).get('image_url'),
-                        'is_verified': user_result.get('is_blue_verified', False),
-                    }
+    # Résoudre le user_id si un handle a été fourni
+    user_id = resolve_user_id(user_or_handle, {"ApiKey": api_key or "mock-key"}, mock=mock)
+    if not user_id:
+        return "Erreur: impossible de résoudre l'user_id depuis le handle fourni."
 
-                    visible_tweet_data['tweet'] = {
-                        'text': tweet_text,
-                        'post_date': legacy_tweet.get('created_at'),
-                        'replies': legacy_tweet.get('reply_count', 0),
-                        'reposts': legacy_tweet.get('retweet_count', 0),
-                        'likes': legacy_tweet.get('favorite_count', 0),
-                        'views': raw_tweet.get('views', {}).get('count', 'N/A'),
-                    }
+    # Pagination: récupérer jusqu'à 'limit' éléments en suivant next_cursor
+    collected = []
+    next_cursor = start_cursor
+    try:
+        while len(collected) < limit:
+            if mock:
+                # Génération déterministe et stable (mêmes sorties pour mêmes paramètres)
+                page_size = 20
+                remaining = limit - len(collected)
+                gen_n = min(page_size, remaining)
+                start_idx = len(collected) + 1
+                seed_input = f"{user_id}:{next_cursor or '0'}"
+                seed = int(hashlib.md5(seed_input.encode("utf-8")).hexdigest()[:12], 16)
+                rnd = random.Random(seed)
+                # Base de date déterministe
+                base_shift_days = int(hashlib.md5(user_id.encode("utf-8")).hexdigest()[:6], 16) % 365
+                base_dt = datetime(2025, 1, 1) - timedelta(days=base_shift_days)
+                templates = [
+                    "[MOCK] Update #{idx} for user {user_id}: shipping new feature today.",
+                    "[MOCK] Thoughts #{idx}: markets, tech, and a bit of fun.",
+                    "[MOCK] Quick note #{idx} — remember to stay hydrated.",
+                    "[MOCK] Dev log #{idx}: performance improved by 23% on latest build.",
+                    "[MOCK] AMA #{idx}: answering top 3 questions from the community.",
+                ]
+                batch = []
+                for i in range(gen_n):
+                    idx = start_idx + i
+                    # ID stable basé sur MD5 de (user_id, idx)
+                    h = hashlib.md5(f"{user_id}:{idx}".encode("utf-8")).hexdigest()
+                    tid = h[:16]
+                    # Texte stable: choix de template déterministe
+                    t_idx = int(hashlib.md5(f"template:{user_id}:{idx}".encode("utf-8")).hexdigest()[:6], 16) % len(templates)
+                    text = templates[t_idx].format(idx=idx, user_id=user_id)
+                    # Date stable: quelques minutes d'écart par idx
+                    created_at = (base_dt - timedelta(minutes=idx * (5 + rnd.randint(0, 3)))).isoformat() + "Z"
+                    batch.append({
+                        "id_str": tid,
+                        "created_at": created_at,
+                        "full_text": text,
+                        "favorite_count": 0,
+                        "retweet_count": 0,
+                        "reply_count": 0,
+                        "quote_count": 0,
+                        "bookmark_count": 0,
+                        "view_count": 0,
+                        "entities": []
+                    })
+                collected.extend(batch)
+                next_cursor = None if len(collected) >= limit else f"mock_cursor_{len(collected)}"
+                if not next_cursor:
+                    break
+            else:
+                payload = {
+                    "user_id": user_id
+                }
+                if link:
+                    payload["link"] = link
+                if next_cursor:
+                    payload["cursor"] = next_cursor
 
-                    media_urls = []
-                    extended_entities = legacy_tweet.get('extended_entities', {})
-                    if 'media' in extended_entities:
-                        for media_item in extended_entities['media']:
-                            if media_item.get('type') in ['photo', 'video', 'animated_gif']:
-                                media_urls.append(media_item.get('media_url_https'))
-                    visible_tweet_data['tweet']['media_urls'] = media_urls
+                # Utilisation de POST au lieu de GET
+                response = requests.post(url, headers=headers, json=payload)
 
-                    link_previews = []
-                    card = raw_tweet.get('card', {}).get('legacy', {}).get('binding_values', [])
-                    for item in card:
-                        if item.get('key') == 'unified_card.destination_url' or item.get('key') == 'card_url':
-                            link_previews.append(item.get('value', {}).get('string_value'))
+                if response.status_code != 200:
+                    return f"Erreur API: {response.status_code} - {response.text}"
 
-                    for url_item in legacy_tweet.get('entities', {}).get('urls', []):
-                        link_previews.append(url_item.get('expanded_url'))
+                response_data = response.json()
+                batch = response_data.get("tweets", [])
+                if not batch:
+                    break
+                collected.extend(batch)
+                next_cursor = response_data.get("next_cursor")
+                if not next_cursor:
+                    break
 
-                    visible_tweet_data['tweet']['external_links'] = list(set([link for link in link_previews if link]))
+        tweets = collected[:limit]
 
-                # Return immediately after finding the main tweet data
-                if as_json_string:
-                    return json.dumps(visible_tweet_data, indent=4)
-                else:
-                    return tweet_text
-
-            except json.JSONDecodeError:
-                print(f"Could not decode JSON from XHR call: {xhr.url}")
-            except Exception as e:
-                print(f"An error occurred during data extraction: {e}")
-
-        browser.close()
-
-        # If no data is found after checking all calls
-        if as_json_string:
-            return json.dumps({})
+        if as_json:
+            # Retourner les données collectées et le prochain curseur pour un appel ultérieur
+            return json.dumps({
+                "tweets": tweets,
+                "next_cursor": next_cursor
+            }, indent=4, ensure_ascii=False)
         else:
-            return ""
+            # Affichage lisible: un séparateur clair entre chaque post
+            blocks = []
+            for i, tweet in enumerate(tweets, start=1):
+                created = tweet.get("created_at", "")
+                text = tweet.get("full_text", "")
+                header = f"[{i}] {created}".strip()
+                blocks.append(f"{header}\n{text}".strip())
+            separator = "\n" + ("-" * 80) + "\n"
+            return separator.join(blocks)
+
+    except Exception as e:
+        return f"Erreur lors de la récupération des tweets: {str(e)}"
 
 
 if __name__ == "__main__":
-    # --- Command-line argument parsing ---
-    parser = argparse.ArgumentParser(description="Scrape a single tweet.")
-    parser.add_argument(
-        "tweet_url",
-        type=str,
-        help="The URL of the tweet to scrape (e.g., https://x.com/user/status/123...)"
-    )
-    parser.add_argument(
-        "--json",
-        action="store_true",  # This makes it a flag; if present, it's True
-        help="Output the scraped data as a JSON string instead of plain text."
-    )
+    # Unique point d'entrée: on appelle le modèle pour chaque post via process_with_ollama,
+    # mais la logique d'analyse reste dans le fichier séparé.
+    from process_with_ollama import process_tweets_with_ollama
+
+    parser = argparse.ArgumentParser(description="Entrée unique: récupère des posts (mock) et appelle un modèle Ollama pour chaque post.")
+    parser.add_argument("user_id", help="ID numérique Twitter ou handle (ex: 44196397 ou @elonmusk)")
+    parser.add_argument("--limit", type=int, default=10, help="Nombre de posts à récupérer")
+    parser.add_argument("--model", type=str, default="qwen3:4b", help="Modèle Ollama")
+    parser.add_argument("--system", type=str, default=None, help="Instruction système optionnelle")
+    parser.add_argument("--json", action="store_true", help="Sortie JSON")
     args = parser.parse_args()
 
-    # --- Use the parsed arguments ---
-    tweet_url = args.tweet_url
+    # Toujours mocker la récupération (pas d'appels payants)
+    results = process_tweets_with_ollama(args.user_id, args.limit, args.model, system_instruction=args.system, mock=True)
 
-    # Call scrape_tweet based on whether --json was provided
     if args.json:
-        # print("--- JSON String Output (as_json_string=True) ---") # Removed this line as requested
-        output_data = scrape_tweet(tweet_url, as_json_string=True)
-        print(output_data)
+        print(json.dumps(results, indent=2, ensure_ascii=False))
     else:
-        # print("--- Plain Text Output (Default) ---") # Removed this line as requested
-        output_data = scrape_tweet(tweet_url)
-        print(output_data)
+        sep = "\n" + ("=" * 80) + "\n"
+        blocks = []
+        for i, r in enumerate(results, start=1):
+            header = f"[{i}] {r.get('created_at','')} (id: {r.get('id_str','')})"
+            blocks.append(f"{header}\nPost:\n{r.get('full_text','')}\n\nAnalysis:\n{r.get('analysis','')}")
+        print(sep.join(blocks))
