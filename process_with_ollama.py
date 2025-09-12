@@ -1,4 +1,3 @@
-import os
 import json
 import argparse
 import subprocess
@@ -7,7 +6,7 @@ from typing import List, Dict, Any
 import sys
 
 # We reuse the scraper module by importing the function
-from twitter_scraper import get_user_tweets
+from utils_scraper import UtilsScraper as us
 
 
 def ensure_model_present(model: str) -> None:
@@ -40,7 +39,7 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
     Returns a list of { created_at, id_str, full_text, analysis }.
     """
     # get_user_tweets returns either pretty-printed JSON (when as_json=True) or text; we need JSON
-    raw = get_user_tweets(user_or_handle, limit=limit, as_json=True, mock=mock)
+    raw = us.get_user_tweets(user_or_handle, limit=limit, as_json=True, mock=mock)
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
@@ -62,7 +61,7 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
         if system_instruction:
             prompt_parts.append(system_instruction.strip())
         prompt_parts.append("Post:\n" + text)
-        prompt_parts.append("\nTask: Provide a concise analysis (3-5 bullet points).")
+        prompt_parts.append("\nRecover the crypto and thickers. give me back only a list of it in python only a list. like following: ['BTC', 'ETH'] but do not add them if they are not present in the post. Do not give any other explaination and don;t even write sentences. Be very precise and don't forget a crypto ticker in the post")
         prompt = "\n\n".join(prompt_parts)
 
         try:
@@ -81,11 +80,14 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
 
 
 if __name__ == "__main__":
+
+    prompt = "Recover the crypto and thickers. give me back only a list of it in python only a list. like following: ['BTC', 'ETH'] but do not add them if they are not present in the post."
+
     parser = argparse.ArgumentParser(description="Analyze latest posts with an Ollama model.")
-    parser.add_argument("user", nargs="?", help="Twitter numeric user_id or handle (e.g., 44196397 or @elonmusk)")
-    parser.add_argument("--limit", type=int, default=10, help="Number of posts to fetch")
-    parser.add_argument("--model", type=str, default="llama3.1:8b", help="Ollama model name/tag")
-    parser.add_argument("--system", type=str, default=None, help="Optional system instruction to prepend")
+    parser.add_argument("user", nargs="?",default="swissborg", help="Twitter numeric user_id or handle (e.g., 44196397 or @elonmusk)")
+    parser.add_argument("--limit", type=int, default=2, help="Number of posts to fetch")
+    parser.add_argument("--model", type=str, default="koesn/mistral-7b-instruct:latest", help="Ollama model name/tag")
+    parser.add_argument("--system", type=str, default=prompt, help="Optional system instruction to prepend")
     parser.add_argument("--json", action="store_true", help="Output JSON instead of pretty text")
     parser.add_argument("--mock", action="store_true", help="Fetch posts in mock mode (no API calls)")
     parser.add_argument("--menu", action="store_true", help="Launch interactive menu")
