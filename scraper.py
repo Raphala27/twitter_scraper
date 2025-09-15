@@ -4,8 +4,8 @@ import sys
 from models_logic.ollama_logic import process_tweets_with_ollama
 
 
-def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool, mock: bool) -> None:
-    results = process_tweets_with_ollama(u, lim, mdl, system_instruction=sysmsg, mock=mock)
+def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool, mock: bool, use_tools: bool = True) -> None:
+    results = process_tweets_with_ollama(u, lim, mdl, system_instruction=sysmsg, mock=mock, use_tools=use_tools)
     if as_json:
         print(json.dumps(results, indent=2, ensure_ascii=False))
     else:
@@ -19,15 +19,16 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
 
 if __name__ == "__main__":
 
-    prompt = "Recover the crypto and thickers. give me back only a list of it in python only a list. like following: ['BTC', 'ETH'] but do not add them if they are not present in the post."
+    prompt = "You are a crypto analyst. Extract cryptocurrency information from social media posts."
 
-    parser = argparse.ArgumentParser(description="Analyze latest posts with an Ollama model.")
+    parser = argparse.ArgumentParser(description="Analyze latest posts with an Ollama model and crypto ticker extraction.")
     parser.add_argument("user", nargs="?",default="swissborg", help="Twitter numeric user_id or handle (e.g., 44196397 or @elonmusk)")
     parser.add_argument("--limit", type=int, default=2, help="Number of posts to fetch")
-    parser.add_argument("--model", type=str, default="koesn/mistral-7b-instruct:latest", help="Ollama model name/tag")
+    parser.add_argument("--model", type=str, default="qwen3:14b", help="Ollama model name/tag")
     parser.add_argument("--system", type=str, default=prompt, help="Optional system instruction to prepend")
     parser.add_argument("--json", action="store_true", help="Output JSON instead of pretty text")
     parser.add_argument("--mock", action="store_true", help="Fetch posts in mock mode (no API calls)")
+    parser.add_argument("--no-tools", action="store_true", help="Disable tools usage (legacy mode)")
     parser.add_argument("--menu", action="store_true", help="Launch interactive menu")
     args = parser.parse_args()
 
@@ -62,16 +63,16 @@ if __name__ == "__main__":
                 if not user:
                     print("Please set a user/handle first.")
                     continue
-                run_and_print(user, limit, model, system_msg, as_json=False, mock=True)
+                run_and_print(user, limit, model, system_msg, as_json=False, mock=True, use_tools=not args.no_tools if 'args' in locals() else True)
             elif choice == "6":
                 if not user:
                     print("Please set a user/handle first.")
                     continue
-                run_and_print(user, limit, model, system_msg, as_json=True, mock=True)
+                run_and_print(user, limit, model, system_msg, as_json=True, mock=True, use_tools=not args.no_tools if 'args' in locals() else True)
             elif choice == "7":
                 sys.exit(0)
             else:
                 print("Unknown option")
     else:
         # Direct CLI mode
-        run_and_print(args.user, args.limit, args.model, args.system, as_json=args.json, mock=args.mock)
+        run_and_print(args.user, args.limit, args.model, args.system, as_json=args.json, mock=args.mock, use_tools=not args.no_tools)
