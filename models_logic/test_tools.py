@@ -1,4 +1,4 @@
-from tools import Tools
+from twitter_scraper.models_logic.tools import Tools
 
 def test_extract_unique_tickers():
     """
