@@ -1,10 +1,10 @@
-# Usage Guide for `process_with_ollama.py`
+# Usage Guide for Twitter Scraper with Ollama Tools
 
-This script analyzes tweets using the Ollama model. Below are the different ways you can run the script and the arguments you can use.
+This script analyzes tweets using the Ollama model with integrated tools for crypto ticker extraction. Below are the different ways you can run the script and the arguments you can use.
 
 ## Basic Command
 ```bash
-python process_with_ollama.py
+python scraper.py
 ```
 
 ## Arguments
@@ -15,61 +15,85 @@ python process_with_ollama.py
 ### Optional Arguments
 - `--limit`: Number of tweets to fetch. Defaults to `2`.
   ```bash
-  python process_with_ollama.py --limit 5
+  python scraper.py --limit 5
   ```
 
-- `--model`: The Ollama model name/tag. Defaults to `koesn/mistral-7b-instruct:latest`.
+- `--model`: The Ollama model name/tag. Defaults to `qwen3:14b`.
   ```bash
-  python process_with_ollama.py --model llama3.1:8b
+  python scraper.py --model llama3.1:8b
   ```
 
 - `--system`: Optional system instruction to prepend to the prompt. Defaults to:
   ```
-  Recover the crypto and thickers. give me back only a list of it in python only a list. like following: ['BTC', 'ETH'] but do not add them if they are not present in the post.
+  You are a crypto analyst. Extract cryptocurrency information from social media posts.
   ```
   Example:
   ```bash
-  python process_with_ollama.py --system "Extract hashtags from the tweets."
+  python scraper.py --system "Extract hashtags from the tweets."
   ```
 
 - `--json`: Output the results in JSON format. Defaults to pretty text output.
   ```bash
-  python process_with_ollama.py --json
+  python scraper.py --json
   ```
 
 - `--mock`: Fetch posts in mock mode (no API calls).
   ```bash
-  python process_with_ollama.py --mock
+  python scraper.py --mock
+  ```
+
+- `--no-tools`: Disable tools usage and use legacy mode.
+  ```bash
+  python scraper.py --no-tools
   ```
 
 - `--menu`: Launch the interactive menu.
   ```bash
-  python process_with_ollama.py --menu
+  python scraper.py --menu
   ```
 
 ## Examples
 
-### Fetch and Analyze Tweets for a Specific User
+### Fetch and Analyze Tweets with Tools (Default)
 ```bash
-python process_with_ollama.py @elonmusk --limit 10 --model llama3.1:8b
+python scraper.py @elonmusk --limit 10 --model llama3.1:8b
 ```
 
-### Use Mock Mode
+### Use Mock Mode with Tools
 ```bash
-python process_with_ollama.py --mock
+python scraper.py --mock --limit 5
 ```
 
 ### Output Results in JSON Format
 ```bash
-python process_with_ollama.py @elonmusk --json
+python scraper.py @elonmusk --json --mock
 ```
 
 ### Launch Interactive Menu
 ```bash
-python process_with_ollama.py --menu
+python scraper.py --menu
+```
+
+### Use Legacy Mode (No Tools)
+```bash
+python scraper.py @elonmusk --no-tools --mock
 ```
 
 ### Use a Custom System Instruction
 ```bash
-python process_with_ollama.py @elonmusk --system "Extract hashtags from the tweets."
+python scraper.py @elonmusk --system "Focus on technical analysis and price predictions."
+```
+
+## Tools Integration
+
+The script now includes integrated tools for:
+- **Crypto Ticker Extraction**: Automatically extracts cryptocurrency tickers from text using the `extract_crypto_tickers` tool
+
+When tools are enabled (default), the model can automatically call these tools when analyzing tweets, providing more accurate and structured extraction of cryptocurrency information.
+
+## Testing Tools
+
+To test the tools functionality directly:
+```bash
+python test_ollama_tools.py
 ```

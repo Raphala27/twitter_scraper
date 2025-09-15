@@ -1,51 +1,46 @@
+import re
+from typing import List
+
 class Tools:
     
     @staticmethod
-    def extract_unique_tickers(cryptos: list[str]) -> list[str]:
-        # Dictionnaire de mapping noms → tickers
-        mapping = {
-            # Top cryptos
-            "bitcoin": "BTC",
-            "ethereum": "ETH",
-            "solana": "SOL",
-            "cardano": "ADA",
-            "ripple": "XRP",
-            "dogecoin": "DOGE",
-            "polygon": "MATIC",
-            "polkadot": "DOT",
-            "litecoin": "LTC",
-            "avalanche": "AVAX",
-            "tron": "TRX",
-            "chainlink": "LINK",
-            "uniswap": "UNI",
-            "cosmos": "ATOM",
-            # Stablecoins
-            "tether": "USDT",
-            "usdt": "USDT",
-            "usd coin": "USDC",
-            "usdc": "USDC",
-            "dai": "DAI",
+    def get_crypto_names_from_tickers(tickers: list[str]) -> list[str]:
+        """
+        Prend une liste de tickers crypto et retourne les noms de crypto-monnaies correspondants.
+
+        Args:
+            tickers (list[str]): Liste de tickers (ex: ["BTC", "ETH"])
+
+        Returns:
+            list[str]: Liste des noms de crypto-monnaies correspondants (ex: ["Bitcoin", "Ethereum"])
+        """
+        # Dictionnaire de correspondance ticker -> nom de crypto-monnaie
+        ticker_to_name = {
+            "BTC": "Bitcoin",
+            "ETH": "Ethereum",
+            "BNB": "Binance Coin",
+            "SOL": "Solana",
+            "XRP": "XRP",
+            "ADA": "Cardano",
+            "DOGE": "Dogecoin",
+            "DOT": "Polkadot",
+            "TRX": "Tron",
+            "AVAX": "Avalanche",
+            "MATIC": "Polygon",
+            "LTC": "Litecoin",
+            "LINK": "Chainlink",
+            "ATOM": "Cosmos",
+            "XLM": "Stellar",
+            "UNI": "Uniswap",
+            "BCH": "Bitcoin Cash",
+            "APT": "Aptos",
+            "OP": "Optimism",
+            "ARB": "Arbitrum"
         }
-        
-        # Tous les tickers connus (en majuscule)
-        valid_tickers = set(mapping.values())
-        
-        tickers = []
-        for item in cryptos:
-            lower_item = item.lower()
-            upper_item = item.upper()
-            
-            if lower_item in mapping:  # Si c'est un nom de crypto
-                tickers.append(mapping[lower_item])
-            elif upper_item in valid_tickers:  # Si c'est déjà un ticker
-                tickers.append(upper_item)
-        
-        # Supprimer doublons en conservant l'ordre
-        seen = set()
-        unique_tickers = []
-        for t in tickers:
-            if t not in seen:
-                seen.add(t)
-                unique_tickers.append(t)
-        
-        return unique_tickers
+
+        crypto_names = []
+        for ticker in tickers:
+            name = ticker_to_name.get(ticker.upper())
+            if name:
+                crypto_names.append(name)
+        return crypto_names
