@@ -95,7 +95,7 @@ class UtilsScraper:
 
                     templates = [
                     """[MOCK] #BTC/USDT
-                        Signal type: LONG🟢
+                        Signal type: SHORT
                         Leverage: 25x
                         Entry : 0.42892
                         Take Profit Targets:
@@ -105,7 +105,7 @@ class UtilsScraper:
                         ➖ 0.75000
                         ➖ 0.78494
                         ⚠️SL: 0.33332""",
-                    "[MOCK] Market thoughts #{idx}: DOGE and SOL are trending, what's next?",
+                        
                     """#ETH/USDT LONG
                         👉Leverage : Cross 25×
                         Entry : 0.6980 - 0.6800
@@ -114,10 +114,43 @@ class UtilsScraper:
                         2) 0.7300
                         3) 0.7450
                         ⭕Stoploss : 0.6700""",
-                    "[MOCK] Dev log #{idx}: integrating LTC payments, testing with USDT.",
-                    "[MOCK] AMA #{idx}: answering questions about staking DOT and MATIC.",
-                ]
+
+                    """[MOCK] #SOL/USDT
+                        Signal type: LONG
+                        Leverage: 20x
+                        Entry : 1.23456
+                        Take Profit Targets:
+                        ➖ 1.30000
+                        ➖ 1.35000
+                        ➖ 1.40000
+                        ➖ 1.45000
+                        ➖ 1.50000
+                        ⚠️SL: 1.10000""",
+
+                    """[MOCK] #ADA/USDT
+                        Signal type: SHORT
+                        Leverage: 15x
+                        Entry : 0.31234
                     
+                        Take Profit Targets:
+                        ➖ 0.32000
+                        ➖ 0.33000
+                        ➖ 0.34000
+                        ➖ 0.35000
+                        ➖ 0.36000
+                        ⚠️SL: 0.30000""",
+
+                    """[MOCK] #XRP/USDT LONG
+                        Signal type: LONG
+                        Leverage: 10x
+                        Entry : 0.45678
+                        Take Profit Targets:
+                        ➖ 0.50000
+                        ➖ 0.55000
+                        ➖ 0.60000
+                        ➖ 0.65000
+                        ⚠️SL: 0.40000""",
+                ]
                     batch = []
                     for i in range(gen_n):
                         idx = start_idx + i

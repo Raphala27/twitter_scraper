@@ -246,4 +246,49 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
             "analysis": analysis,
         })
 
+    # Créer un dictionnaire consolidé avec toutes les analyses
+    consolidated_analysis = {
+        "account": user_or_handle,
+        "total_tweets": len(results),
+        "analysis_summary": {
+            "total_positions": 0,
+            "long_positions": 0,
+            "short_positions": 0
+        },
+        "tweets_analysis": []
+    }
+    
+    for i, result in enumerate(results, 1):
+        analysis = result.get("analysis", {})
+        if isinstance(analysis, dict) and "cryptos" in analysis:
+            cryptos = analysis.get("cryptos", [])
+            # Filtrer uniquement les cryptos avec des positions définies (long/short)
+            for crypto in cryptos:
+                if isinstance(crypto, dict):
+                    sentiment = crypto.get("sentiment", "neutral")
+                    if sentiment in ["long", "short"]:  # Exclure "neutral"
+                        ticker = crypto.get("ticker", "")
+                        leverage = crypto.get("leverage", "none")
+                        
+                        crypto_entry = {
+                            "tweet_number": i,
+                            "timestamp": result.get("created_at", ""),
+                            "ticker": ticker,
+                            "sentiment": sentiment,
+                            "leverage": leverage
+                        }
+                        consolidated_analysis["tweets_analysis"].append(crypto_entry)
+                        
+                        consolidated_analysis["analysis_summary"]["total_positions"] += 1
+                        if sentiment == "long":
+                            consolidated_analysis["analysis_summary"]["long_positions"] += 1
+                        elif sentiment == "short":
+                            consolidated_analysis["analysis_summary"]["short_positions"] += 1
+    
+    # Ajouter le dictionnaire consolidé au dernier résultat
+    if results:
+        results.append({
+            "consolidated_analysis": consolidated_analysis
+        })
+
     return results
