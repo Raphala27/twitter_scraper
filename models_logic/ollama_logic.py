@@ -27,7 +27,7 @@ def ensure_model_present(model: str) -> None:
 
 def generate_with_ollama(model: str, prompt: str, url: str = "http://localhost:11434/api/generate") -> str:
     """Call Ollama generate API with a simple prompt and return the full response text."""
-    payload = {"model": model, "prompt": prompt, "stream": False}
+    payload = {"model": model, "prompt": prompt, "stream": False, "think": False}
     headers = {"Content-Type": "application/json"}
     resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=120)
     resp.raise_for_status()
@@ -80,7 +80,7 @@ def generate_with_ollama_tools(model: str, prompt: str, tools: List[Dict[str, An
     # First call to get the model's response
     payload = {"model": model, "prompt": prompt, "stream": False, "tools": tools}
     headers = {"Content-Type": "application/json"}
-    print("Payload:", payload)
+    # print("Payload:", payload)
     resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=120)
     resp.raise_for_status()
     data = resp.json()
@@ -156,14 +156,12 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
 
         prompt = "\n\n".join(prompt_parts)
 
-        print(use_tools)
         try:
             if use_tools:
                 analysis = generate_with_ollama_tools(model=model, prompt=prompt)
             else:
                 # Mode sans tools : récupérer la réponse et extraire la liste finale
                 raw_response = generate_with_ollama(model=model, prompt=prompt)
-                print(f"📋 Réponse complète du modèle : {raw_response}")
                 
                 try:
                     # Extraire toutes les listes de la réponse avec regex
@@ -174,27 +172,24 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
                     if matches:
                         # Prendre la dernière liste trouvée (réponse finale)
                         last_list_content = matches[-1]
-                        print(f"🎯 Dernière liste trouvée : [{last_list_content}]")
                         
                         # Parser la liste
                         if last_list_content.strip():
                             # Séparer par virgule et nettoyer chaque élément
                             items = [item.strip().strip("'\"") for item in last_list_content.split(',') if item.strip()]
                             tickers_list = [item for item in items if item]  # Supprimer les éléments vides
-                            print(f"✅ Liste des tickers extraite : {tickers_list}")
                         else:
                             tickers_list = []
-                            print("📝 Liste vide détectée")
                         
                         # Convertir les tickers en noms de cryptos
                         if tickers_list:
                             analysis = Tools.get_crypto_names_from_tickers(tickers_list)
-                            print(f"🏷️  Noms des cryptos : {analysis}")
+                            print(f"💰 Cryptos trouvées: {tickers_list} → {analysis}")
                         else:
                             analysis = []
-                            print("🏷️  Aucune crypto trouvée")
+                            print("💰 Aucune crypto détectée dans ce tweet")
                     else:
-                        print("❌ Aucune liste trouvée dans la réponse")
+                        print("⚠️  Format de réponse inattendu du modèle")
                         analysis = raw_response
 
                 except Exception as e:

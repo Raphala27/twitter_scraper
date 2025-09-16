@@ -9,12 +9,32 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
     if as_json:
         print(json.dumps(results, indent=2, ensure_ascii=False))
     else:
-        sep = "\n" + ("=" * 80) + "\n"
-        blocks = []
+        print("\n" + "🐦" * 30 + " ANALYSE DES TWEETS " + "🐦" * 30)
         for i, r in enumerate(results, start=1):
-            header = f"[{i}] {r.get('created_at','')} (id: {r.get('id_str','')})"
-            blocks.append(f"{header}\nPost:\n{r.get('full_text','')}\n\nAnalysis:\n{r.get('analysis','')}")
-        print(sep.join(blocks))
+            print(f"\n📝 TWEET #{i}")
+            print("─" * 60)
+            
+            # Affichage du contenu du tweet
+            tweet_text = r.get('full_text', '')
+            if len(tweet_text) > 200:
+                tweet_text = tweet_text[:200] + "..."
+            print(f"💬 Contenu: {tweet_text}")
+            
+            # Affichage de l'analyse
+            analysis = r.get('analysis', '')
+            if isinstance(analysis, list):
+                if analysis:
+                    print(f"🔍 Cryptos détectées: {', '.join(analysis)}")
+                else:
+                    print("🔍 Aucune crypto détectée")
+            else:
+                print(f"🔍 Analyse: {analysis}")
+            
+            # Métadonnées (optionnel, plus discret)
+            if r.get('created_at') or r.get('id_str'):
+                print(f"📅 {r.get('created_at', 'N/A')} | ID: {r.get('id_str', 'N/A')}")
+        
+        print("\n" + "🏁" * 20 + " FIN DE L'ANALYSE " + "🏁" * 20)
 
 
 if __name__ == "__main__":
