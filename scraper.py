@@ -22,17 +22,43 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
             
             # Affichage de l'analyse
             analysis = r.get('analysis', '')
-            if isinstance(analysis, list):
+            if isinstance(analysis, dict):
+                # Nouveau format structuré
+                tickers = analysis.get('tickers', [])
+                sentiments = analysis.get('sentiments', [])
+                timestamp = analysis.get('timestamp', '')
+                tweet_id = analysis.get('tweet_id', '')
+                
+                if tickers:
+                    print(f"🔍 Cryptos analysées:")
+                    for sentiment_data in sentiments:
+                        ticker = sentiment_data.get('ticker', 'N/A')
+                        sentiment = sentiment_data.get('sentiment', 'neutral')
+                        emoji = "📈" if sentiment == "long" else "📉" if sentiment == "short" else "➡️"
+                        print(f"   {emoji} {ticker}: {sentiment.upper()}")
+                else:
+                    print("🔍 Aucune crypto détectée")
+                
+                # Affichage de la date/heure précise
+                if timestamp:
+                    print(f"🕐 Timestamp: {timestamp}")
+                if tweet_id:
+                    print(f"🆔 Tweet ID: {tweet_id}")
+                    
+            elif isinstance(analysis, list):
+                # Format ancien (liste de noms)
                 if analysis:
                     print(f"🔍 Cryptos détectées: {', '.join(analysis)}")
                 else:
                     print("🔍 Aucune crypto détectée")
             else:
+                # Format texte brut
                 print(f"🔍 Analyse: {analysis}")
             
             # Métadonnées (optionnel, plus discret)
-            if r.get('created_at') or r.get('id_str'):
-                print(f"📅 {r.get('created_at', 'N/A')} | ID: {r.get('id_str', 'N/A')}")
+            if not isinstance(analysis, dict):  # Éviter la duplication si déjà affiché
+                if r.get('created_at') or r.get('id_str'):
+                    print(f"📅 {r.get('created_at', 'N/A')} | ID: {r.get('id_str', 'N/A')}")
         
         print("\n" + "🏁" * 20 + " FIN DE L'ANALYSE " + "🏁" * 20)
 
