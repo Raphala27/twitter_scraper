@@ -14,7 +14,7 @@ pip install requests python-dotenv
 
 ## Configuration
 
-1. Obtenez votre clé API depuis [TwitScoot](https://tweetscout.io)
+1. Obtenez votre clé API depuis [TweetScoot](https://tweetscout.io)
 2. Créez un fichier `.env` dans le répertoire du projet:
 ```bash
 TWITSCOUT_API_KEY=votre_cle_api_ici
