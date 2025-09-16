@@ -35,7 +35,9 @@ class Tools:
             "BCH": "Bitcoin Cash",
             "APT": "Aptos",
             "OP": "Optimism",
-            "ARB": "Arbitrum"
+            "ARB": "Arbitrum",
+            "USDT": "Tether",
+            "USDC": "USD Coin",
         }
 
         crypto_names = []
