@@ -152,7 +152,7 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
         if use_tools:
             prompt_parts.append("\nAnalyze this post and extract any cryptocurrency tickers mentioned. Use the extract_crypto_tickers tool if you find any crypto-related content.")
         else:
-            prompt_parts.append("\nRecover the crypto and tickers. Give me back only a list in python format. Only like following: ['BTC', 'ETH'] but do not add them if they are not present in the post. Do not give any other explanation, do not write sentences, do not show your thinking process. Be very precise and don't forget a crypto ticker in the post. Final answer must be only the list.")
+            prompt_parts.append("\nAnalyze this post and extract cryptocurrency information. Return ONLY a Python list with this exact format: [{'ticker': 'BTC', 'sentiment': 'long'}, {'ticker': 'ETH', 'sentiment': 'short'}]. Sentiment must be 'long', 'short', or 'neutral'. If no crypto found, return []. Do not add explanations, just the list.")
 
         prompt = "\n\n".join(prompt_parts)
 
@@ -166,31 +166,70 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
                 try:
                     # Extraire toutes les listes de la réponse avec regex
                     import re
-                    list_pattern = r'\[([^\[\]]*)\]'
-                    matches = re.findall(list_pattern, raw_response)
+                    import ast
+                    
+                    # Chercher des listes ou dictionnaires dans la réponse
+                    list_pattern = r'\[.*?\]'
+                    matches = re.findall(list_pattern, raw_response, re.DOTALL)
                     
                     if matches:
                         # Prendre la dernière liste trouvée (réponse finale)
-                        last_list_content = matches[-1]
+                        last_list_str = matches[-1]
                         
-                        # Parser la liste
-                        if last_list_content.strip():
-                            # Séparer par virgule et nettoyer chaque élément
-                            items = [item.strip().strip("'\"") for item in last_list_content.split(',') if item.strip()]
-                            tickers_list = [item for item in items if item]  # Supprimer les éléments vides
-                        else:
-                            tickers_list = []
-                        
-                        # Convertir les tickers en noms de cryptos
-                        if tickers_list:
-                            analysis = Tools.get_crypto_names_from_tickers(tickers_list)
-                            print(f"💰 Cryptos trouvées: {tickers_list} → {analysis}")
-                        else:
-                            analysis = []
-                            print("💰 Aucune crypto détectée dans ce tweet")
+                        try:
+                            # Essayer de parser comme une liste Python
+                            parsed_data = ast.literal_eval(last_list_str)
+                            
+                            if isinstance(parsed_data, list):
+                                if parsed_data and isinstance(parsed_data[0], dict):
+                                    # Format nouveau : [{'ticker': 'BTC', 'sentiment': 'long'}]
+                                    analysis = {
+                                        'tickers': [item.get('ticker', '') for item in parsed_data],
+                                        'sentiments': parsed_data,
+                                        'timestamp': created,
+                                        'tweet_id': tid
+                                    }
+                                    print(f"💰 Analyse complète: {len(parsed_data)} crypto(s) détectée(s)")
+                                    for item in parsed_data:
+                                        ticker = item.get('ticker', 'N/A')
+                                        sentiment = item.get('sentiment', 'neutral')
+                                        print(f"   📊 {ticker}: {sentiment}")
+                                elif parsed_data:
+                                    # Format ancien : ['BTC', 'ETH']
+                                    tickers_list = [str(item) for item in parsed_data]
+                                    # Analyser le sentiment avec notre fonction
+                                    sentiment_analysis = Tools.analyze_crypto_sentiment(text, tickers_list)
+                                    analysis = {
+                                        'tickers': tickers_list,
+                                        'sentiments': sentiment_analysis,
+                                        'timestamp': created,
+                                        'tweet_id': tid
+                                    }
+                                    print(f"💰 Cryptos trouvées: {tickers_list}")
+                                    print(f"📊 Sentiment analysé automatiquement")
+                                else:
+                                    # Liste vide
+                                    analysis = {
+                                        'tickers': [],
+                                        'sentiments': [],
+                                        'timestamp': created,
+                                        'tweet_id': tid
+                                    }
+                                    print("💰 Aucune crypto détectée dans ce tweet")
+                            else:
+                                analysis = raw_response
+                        except (ValueError, SyntaxError) as e:
+                            print(f"⚠️  Erreur de parsing: {e}")
+                            analysis = raw_response
                     else:
                         print("⚠️  Format de réponse inattendu du modèle")
-                        analysis = raw_response
+                        analysis = {
+                            'tickers': [],
+                            'sentiments': [],
+                            'timestamp': created,
+                            'tweet_id': tid,
+                            'raw_response': raw_response
+                        }
 
                 except Exception as e:
                     print(f"❌ Erreur lors du parsing de la liste : {e}")
