@@ -152,7 +152,7 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
         if use_tools:
             prompt_parts.append("\nAnalyze this post and extract any cryptocurrency tickers mentioned. Use the extract_crypto_tickers tool if you find any crypto-related content.")
         else:
-            prompt_parts.append("\nAnalyze this post and extract cryptocurrency information. Return ONLY a Python list with this exact format: [{'ticker': 'BTC', 'sentiment': 'long'}, {'ticker': 'ETH', 'sentiment': 'short'}]. Sentiment must be 'long', 'short', or 'neutral'. If no crypto found, return []. Do not add explanations, just the list.")
+            prompt_parts.append("\nAnalyze this post and extract cryptocurrency information. Return ONLY a Python list with this exact format: [{'ticker': 'BTC', 'sentiment': 'long', 'leverage': '10'}, {'ticker': 'ETH', 'sentiment': 'short', 'leverage': '5'}]. Sentiment must be 'long', 'short', or 'neutral'. Leverage should be extracted as a number only (like '2', '10', '50') or 'none' if not specified. If no crypto found, return []. Do not add explanations, just the list.")
 
         prompt = "\n\n".join(prompt_parts)
 
@@ -196,7 +196,8 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
                                         if isinstance(item, dict):
                                             ticker = item.get('ticker', 'N/A')
                                             sentiment = item.get('sentiment', 'neutral')
-                                            print(f"   📊 {ticker}: {sentiment}")
+                                            leverage = item.get('leverage', 'none')
+                                            print(f"   📊 {ticker}: {sentiment} (levier: {leverage})")
                                         else:
                                             print(f"   📊 {item}")
                                 else:

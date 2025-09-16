@@ -37,8 +37,10 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
                         if isinstance(crypto_data, dict):
                             ticker = crypto_data.get('ticker', 'N/A')
                             sentiment = crypto_data.get('sentiment', 'neutral')
+                            leverage = crypto_data.get('leverage', 'none')
                             emoji = "📈" if sentiment == "long" else "📉" if sentiment == "short" else "➡️"
-                            print(f"   {emoji} {ticker}: {sentiment.upper()}")
+                            lever_display = f" ({leverage})" if leverage and leverage != 'none' else ""
+                            print(f"   {emoji} {ticker}: {sentiment.upper()}{lever_display}")
                         else:
                             print(f"   💰 {crypto_data}")
                 else:
