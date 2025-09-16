@@ -94,9 +94,26 @@ class UtilsScraper:
                     base_dt = datetime(2025, 1, 1) - timedelta(days=base_shift_days)
 
                     templates = [
-                    "[MOCK] Crypto update #{idx} for user {user_id}: bullish on BTC and ETH today.",
+                    """[MOCK] #BTC/USDT
+                        Signal type: LONG🟢
+                        Leverage: 25x
+                        Entry : 0.42892
+                        Take Profit Targets:
+                        ➖ 0.50000
+                        ➖ 0.60000
+                        ➖ 0.70000
+                        ➖ 0.75000
+                        ➖ 0.78494
+                        ⚠️SL: 0.33332""",
                     "[MOCK] Market thoughts #{idx}: DOGE and SOL are trending, what's next?",
-                    "[MOCK] Quick tip #{idx} — diversify with ADA and XRP in your portfolio.",
+                    """#ETH/USDT LONG
+                        👉Leverage : Cross 25×
+                        Entry : 0.6980 - 0.6800
+                        Take Profit
+                        1) 0.7120
+                        2) 0.7300
+                        3) 0.7450
+                        ⭕Stoploss : 0.6700""",
                     "[MOCK] Dev log #{idx}: integrating LTC payments, testing with USDT.",
                     "[MOCK] AMA #{idx}: answering questions about staking DOT and MATIC.",
                 ]
