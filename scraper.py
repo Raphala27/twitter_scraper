@@ -23,19 +23,24 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
             # Affichage de l'analyse
             analysis = r.get('analysis', '')
             if isinstance(analysis, dict):
-                # Nouveau format structuré
-                tickers = analysis.get('tickers', [])
-                sentiments = analysis.get('sentiments', [])
+                # Afficher le dictionnaire brut pour debug
+                print(f"🔧 Dictionnaire brut: {analysis}")
+                
+                # Format structuré avec cryptos
+                cryptos = analysis.get('cryptos', [])
                 timestamp = analysis.get('timestamp', '')
                 tweet_id = analysis.get('tweet_id', '')
                 
-                if tickers:
+                if cryptos:
                     print(f"🔍 Cryptos analysées:")
-                    for sentiment_data in sentiments:
-                        ticker = sentiment_data.get('ticker', 'N/A')
-                        sentiment = sentiment_data.get('sentiment', 'neutral')
-                        emoji = "📈" if sentiment == "long" else "📉" if sentiment == "short" else "➡️"
-                        print(f"   {emoji} {ticker}: {sentiment.upper()}")
+                    for crypto_data in cryptos:
+                        if isinstance(crypto_data, dict):
+                            ticker = crypto_data.get('ticker', 'N/A')
+                            sentiment = crypto_data.get('sentiment', 'neutral')
+                            emoji = "📈" if sentiment == "long" else "📉" if sentiment == "short" else "➡️"
+                            print(f"   {emoji} {ticker}: {sentiment.upper()}")
+                        else:
+                            print(f"   💰 {crypto_data}")
                 else:
                     print("🔍 Aucune crypto détectée")
                 
@@ -46,13 +51,15 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
                     print(f"🆔 Tweet ID: {tweet_id}")
                     
             elif isinstance(analysis, list):
-                # Format ancien (liste de noms)
+                # Format ancien (liste)
+                print(f"🔧 Liste brute: {analysis}")
                 if analysis:
-                    print(f"🔍 Cryptos détectées: {', '.join(analysis)}")
+                    print(f"🔍 Cryptos détectées: {', '.join(str(x) for x in analysis)}")
                 else:
                     print("🔍 Aucune crypto détectée")
             else:
                 # Format texte brut
+                print(f"🔧 Texte brut: {analysis}")
                 print(f"🔍 Analyse: {analysis}")
             
             # Métadonnées (optionnel, plus discret)

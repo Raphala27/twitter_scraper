@@ -162,13 +162,16 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
             else:
                 # Mode sans tools : récupérer la réponse et extraire la liste finale
                 raw_response = generate_with_ollama(model=model, prompt=prompt)
+                print(f"🔍 RÉPONSE BRUTE DU MODÈLE:")
+                print(f"'{raw_response}'")
+                print("─" * 60)
                 
                 try:
                     # Extraire toutes les listes de la réponse avec regex
                     import re
                     import ast
                     
-                    # Chercher des listes ou dictionnaires dans la réponse
+                    # Chercher des listes dans la réponse
                     list_pattern = r'\[.*?\]'
                     matches = re.findall(list_pattern, raw_response, re.DOTALL)
                     
@@ -181,51 +184,49 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
                             parsed_data = ast.literal_eval(last_list_str)
                             
                             if isinstance(parsed_data, list):
-                                if parsed_data and isinstance(parsed_data[0], dict):
-                                    # Format nouveau : [{'ticker': 'BTC', 'sentiment': 'long'}]
+                                if parsed_data:
+                                    # Format attendu : [{'ticker': 'BTC', 'sentiment': 'long'}]
                                     analysis = {
-                                        'tickers': [item.get('ticker', '') for item in parsed_data],
-                                        'sentiments': parsed_data,
+                                        'cryptos': parsed_data,
                                         'timestamp': created,
                                         'tweet_id': tid
                                     }
-                                    print(f"💰 Analyse complète: {len(parsed_data)} crypto(s) détectée(s)")
+                                    print(f"💰 {len(parsed_data)} crypto(s) analysée(s):")
                                     for item in parsed_data:
-                                        ticker = item.get('ticker', 'N/A')
-                                        sentiment = item.get('sentiment', 'neutral')
-                                        print(f"   📊 {ticker}: {sentiment}")
-                                elif parsed_data:
-                                    # Format ancien : ['BTC', 'ETH']
-                                    tickers_list = [str(item) for item in parsed_data]
-                                    # Analyser le sentiment avec notre fonction
-                                    sentiment_analysis = Tools.analyze_crypto_sentiment(text, tickers_list)
-                                    analysis = {
-                                        'tickers': tickers_list,
-                                        'sentiments': sentiment_analysis,
-                                        'timestamp': created,
-                                        'tweet_id': tid
-                                    }
-                                    print(f"💰 Cryptos trouvées: {tickers_list}")
-                                    print(f"📊 Sentiment analysé automatiquement")
+                                        if isinstance(item, dict):
+                                            ticker = item.get('ticker', 'N/A')
+                                            sentiment = item.get('sentiment', 'neutral')
+                                            print(f"   📊 {ticker}: {sentiment}")
+                                        else:
+                                            print(f"   📊 {item}")
                                 else:
                                     # Liste vide
                                     analysis = {
-                                        'tickers': [],
-                                        'sentiments': [],
+                                        'cryptos': [],
                                         'timestamp': created,
                                         'tweet_id': tid
                                     }
                                     print("💰 Aucune crypto détectée dans ce tweet")
                             else:
-                                analysis = raw_response
+                                analysis = {
+                                    'cryptos': [],
+                                    'timestamp': created,
+                                    'tweet_id': tid,
+                                    'raw_response': raw_response
+                                }
+                                print("⚠️  Réponse non-liste du modèle")
                         except (ValueError, SyntaxError) as e:
                             print(f"⚠️  Erreur de parsing: {e}")
-                            analysis = raw_response
+                            analysis = {
+                                'cryptos': [],
+                                'timestamp': created,
+                                'tweet_id': tid,
+                                'raw_response': raw_response
+                            }
                     else:
-                        print("⚠️  Format de réponse inattendu du modèle")
+                        print("⚠️  Aucune liste trouvée dans la réponse")
                         analysis = {
-                            'tickers': [],
-                            'sentiments': [],
+                            'cryptos': [],
                             'timestamp': created,
                             'tweet_id': tid,
                             'raw_response': raw_response
