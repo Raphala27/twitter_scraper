@@ -152,7 +152,7 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
         if use_tools:
             prompt_parts.append("\nAnalyze this post and extract any cryptocurrency tickers mentioned. Use the extract_crypto_tickers tool if you find any crypto-related content.")
         else:
-            prompt_parts.append("\nRecover the crypto and tickers. Give me back only a list in python format. Only like following: ['BTC', 'ETH'] but do not add them if they are not present in the post. Do not give any other explanation, do not write sentences, do not show your thinking process. Be very precise and don't forget a crypto ticker in the post. Final answer must be only the list.")
+            prompt_parts.append("\nAnalyze this post and extract cryptocurrency information. Return ONLY a Python list with this exact format: [{'ticker': 'BTC', 'sentiment': 'long', 'leverage': '10'}, {'ticker': 'ETH', 'sentiment': 'short', 'leverage': '5'}]. Sentiment must be 'long', 'short', or 'neutral'. Leverage should be extracted as a number only (like '2', '10', '50') or 'none' if not specified. If no crypto found, return []. Do not add explanations, just the list.")
 
         prompt = "\n\n".join(prompt_parts)
 
@@ -162,35 +162,76 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
             else:
                 # Mode sans tools : récupérer la réponse et extraire la liste finale
                 raw_response = generate_with_ollama(model=model, prompt=prompt)
+                print(f"🔍 RÉPONSE BRUTE DU MODÈLE:")
+                print(f"'{raw_response}'")
+                print("─" * 60)
                 
                 try:
                     # Extraire toutes les listes de la réponse avec regex
                     import re
-                    list_pattern = r'\[([^\[\]]*)\]'
-                    matches = re.findall(list_pattern, raw_response)
+                    import ast
+                    
+                    # Chercher des listes dans la réponse
+                    list_pattern = r'\[.*?\]'
+                    matches = re.findall(list_pattern, raw_response, re.DOTALL)
                     
                     if matches:
                         # Prendre la dernière liste trouvée (réponse finale)
-                        last_list_content = matches[-1]
+                        last_list_str = matches[-1]
                         
-                        # Parser la liste
-                        if last_list_content.strip():
-                            # Séparer par virgule et nettoyer chaque élément
-                            items = [item.strip().strip("'\"") for item in last_list_content.split(',') if item.strip()]
-                            tickers_list = [item for item in items if item]  # Supprimer les éléments vides
-                        else:
-                            tickers_list = []
-                        
-                        # Convertir les tickers en noms de cryptos
-                        if tickers_list:
-                            analysis = Tools.get_crypto_names_from_tickers(tickers_list)
-                            print(f"💰 Cryptos trouvées: {tickers_list} → {analysis}")
-                        else:
-                            analysis = []
-                            print("💰 Aucune crypto détectée dans ce tweet")
+                        try:
+                            # Essayer de parser comme une liste Python
+                            parsed_data = ast.literal_eval(last_list_str)
+                            
+                            if isinstance(parsed_data, list):
+                                if parsed_data:
+                                    # Format attendu : [{'ticker': 'BTC', 'sentiment': 'long'}]
+                                    analysis = {
+                                        'cryptos': parsed_data,
+                                        'timestamp': created,
+                                        'tweet_id': tid
+                                    }
+                                    print(f"💰 {len(parsed_data)} crypto(s) analysée(s):")
+                                    for item in parsed_data:
+                                        if isinstance(item, dict):
+                                            ticker = item.get('ticker', 'N/A')
+                                            sentiment = item.get('sentiment', 'neutral')
+                                            leverage = item.get('leverage', 'none')
+                                            print(f"   📊 {ticker}: {sentiment} (levier: {leverage})")
+                                        else:
+                                            print(f"   📊 {item}")
+                                else:
+                                    # Liste vide
+                                    analysis = {
+                                        'cryptos': [],
+                                        'timestamp': created,
+                                        'tweet_id': tid
+                                    }
+                                    print("💰 Aucune crypto détectée dans ce tweet")
+                            else:
+                                analysis = {
+                                    'cryptos': [],
+                                    'timestamp': created,
+                                    'tweet_id': tid,
+                                    'raw_response': raw_response
+                                }
+                                print("⚠️  Réponse non-liste du modèle")
+                        except (ValueError, SyntaxError) as e:
+                            print(f"⚠️  Erreur de parsing: {e}")
+                            analysis = {
+                                'cryptos': [],
+                                'timestamp': created,
+                                'tweet_id': tid,
+                                'raw_response': raw_response
+                            }
                     else:
-                        print("⚠️  Format de réponse inattendu du modèle")
-                        analysis = raw_response
+                        print("⚠️  Aucune liste trouvée dans la réponse")
+                        analysis = {
+                            'cryptos': [],
+                            'timestamp': created,
+                            'tweet_id': tid,
+                            'raw_response': raw_response
+                        }
 
                 except Exception as e:
                     print(f"❌ Erreur lors du parsing de la liste : {e}")
@@ -203,6 +244,51 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
             "id_str": tid,
             "full_text": text,
             "analysis": analysis,
+        })
+
+    # Créer un dictionnaire consolidé avec toutes les analyses
+    consolidated_analysis = {
+        "account": user_or_handle,
+        "total_tweets": len(results),
+        "analysis_summary": {
+            "total_positions": 0,
+            "long_positions": 0,
+            "short_positions": 0
+        },
+        "tweets_analysis": []
+    }
+    
+    for i, result in enumerate(results, 1):
+        analysis = result.get("analysis", {})
+        if isinstance(analysis, dict) and "cryptos" in analysis:
+            cryptos = analysis.get("cryptos", [])
+            # Filtrer uniquement les cryptos avec des positions définies (long/short)
+            for crypto in cryptos:
+                if isinstance(crypto, dict):
+                    sentiment = crypto.get("sentiment", "neutral")
+                    if sentiment in ["long", "short"]:  # Exclure "neutral"
+                        ticker = crypto.get("ticker", "")
+                        leverage = crypto.get("leverage", "none")
+                        
+                        crypto_entry = {
+                            "tweet_number": i,
+                            "timestamp": result.get("created_at", ""),
+                            "ticker": ticker,
+                            "sentiment": sentiment,
+                            "leverage": leverage
+                        }
+                        consolidated_analysis["tweets_analysis"].append(crypto_entry)
+                        
+                        consolidated_analysis["analysis_summary"]["total_positions"] += 1
+                        if sentiment == "long":
+                            consolidated_analysis["analysis_summary"]["long_positions"] += 1
+                        elif sentiment == "short":
+                            consolidated_analysis["analysis_summary"]["short_positions"] += 1
+    
+    # Ajouter le dictionnaire consolidé au dernier résultat
+    if results:
+        results.append({
+            "consolidated_analysis": consolidated_analysis
         })
 
     return results

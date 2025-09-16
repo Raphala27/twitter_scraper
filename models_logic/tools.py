@@ -38,6 +38,18 @@ class Tools:
             "ARB": "Arbitrum",
             "USDT": "Tether",
             "USDC": "USD Coin",
+            "SUI": "Sui",
+            "NEAR": "Near Protocol",
+            "FTM": "Fantom",
+            "ALGO": "Algorand",
+            "VET": "VeChain",
+            "ICP": "Internet Computer",
+            "FIL": "Filecoin",
+            "SAND": "The Sandbox",
+            "MANA": "Decentraland",
+            "CRO": "Cronos",
+            "LDO": "Lido DAO",
+            "QNT": "Quant"
         }
 
         crypto_names = []
