@@ -10,7 +10,13 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
         print(json.dumps(results, indent=2, ensure_ascii=False))
     else:
         print("\n" + "🐦" * 30 + " ANALYSE DES TWEETS " + "🐦" * 30)
-        for i, r in enumerate(results, start=1):
+        
+        # Séparer les tweets individuels de l'analyse consolidée
+        tweet_results = [r for r in results if "consolidated_analysis" not in r]
+        consolidated = next((r for r in results if "consolidated_analysis" in r), None)
+        
+        # Afficher les tweets individuels
+        for i, r in enumerate(tweet_results, start=1):
             print(f"\n📝 TWEET #{i}")
             print("─" * 60)
             
@@ -68,6 +74,21 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
             if not isinstance(analysis, dict):  # Éviter la duplication si déjà affiché
                 if r.get('created_at') or r.get('id_str'):
                     print(f"📅 {r.get('created_at', 'N/A')} | ID: {r.get('id_str', 'N/A')}")
+        
+        # Afficher l'analyse consolidée
+        if consolidated:
+            print("\n" + "📊" * 25 + " ANALYSE CONSOLIDÉE " + "📊" * 25)
+            cons_data = consolidated["consolidated_analysis"]
+            print(f"🔧 Dictionnaire consolidé complet:")
+            print(json.dumps(cons_data, indent=2, ensure_ascii=False))
+            
+            summary = cons_data["analysis_summary"]
+            print(f"\n📈 RÉSUMÉ GLOBAL:")
+            print(f"   🏢 Compte: {cons_data['account']}")
+            print(f"   📝 Total tweets analysés: {cons_data['total_tweets']}")
+            print(f"   💰 Total positions: {summary['total_positions']}")
+            print(f"   📈 Positions long: {summary['long_positions']}")
+            print(f"   📉 Positions short: {summary['short_positions']}")
         
         print("\n" + "🏁" * 20 + " FIN DE L'ANALYSE " + "🏁" * 20)
 
