@@ -94,7 +94,7 @@ class UtilsScraper:
                     base_dt = datetime(2025, 1, 1) - timedelta(days=base_shift_days)
 
                     templates = [
-                    """[MOCK] #BTC/USDT
+                    """[MOCK] #WBTC/USDT
                         Signal type: SHORT
                         Leverage: 25x
                         Entry : 0.42892
