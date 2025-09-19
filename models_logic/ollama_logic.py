@@ -152,7 +152,7 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
         if use_tools:
             prompt_parts.append("\nAnalyze this post and extract any cryptocurrency tickers mentioned. Use the extract_crypto_tickers tool if you find any crypto-related content.")
         else:
-            prompt_parts.append("\nAnalyze this post and extract cryptocurrency information. Return ONLY a Python list with this exact format: [{'ticker': 'BTC', 'sentiment': 'long', 'leverage': '10'}, {'ticker': 'ETH', 'sentiment': 'short', 'leverage': '5'}]. Sentiment must be 'long', 'short', or 'neutral'. Leverage should be extracted as a number only (like '2', '10', '50') or 'none' if not specified. If no crypto found, return []. Do not add explanations, just the list.")
+            prompt_parts.append("\nAnalyze this post and extract cryptocurrency information. Return ONLY a Python list with this exact format: [{'ticker': 'BTC', 'sentiment': 'long', 'leverage': '10', 'take_profits': [50000, 52000, 55000], 'stop_loss': 45000, 'entry_price': 48000}]. Sentiment must be 'long', 'short', or 'neutral'. Leverage should be extracted as a number only (like '2', '10', '50') or 'none' if not specified. Extract all Take Profit targets as a list of numbers, Stop Loss as a single number, and Entry price as a single number. If any price is not found, use null. If no crypto found, return []. Do not add explanations, just the list.")
 
         prompt = "\n\n".join(prompt_parts)
 
@@ -167,21 +167,34 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
                 print("─" * 60)
                 
                 try:
-                    # Extraire toutes les listes de la réponse avec regex
+                    # Extraire toutes les listes de la réponse avec regex améliorée
                     import re
                     import ast
                     
-                    # Chercher des listes dans la réponse
-                    list_pattern = r'\[.*?\]'
+                    # Chercher des listes complètes dans la réponse
+                    # Cette regex gère les listes avec des objets imbriqués
+                    list_pattern = r'\[(?:[^\[\]]|(?:\[[^\[\]]*\]))*\]'
                     matches = re.findall(list_pattern, raw_response, re.DOTALL)
+                    
+                    # Si pas de correspondance avec la regex complexe, essayer la simple
+                    if not matches:
+                        list_pattern = r'\[.*\]'
+                        matches = re.findall(list_pattern, raw_response, re.DOTALL)
                     
                     if matches:
                         # Prendre la dernière liste trouvée (réponse finale)
                         last_list_str = matches[-1]
+                        print(f"🔧 Liste extraite: {last_list_str}")
                         
                         try:
-                            # Essayer de parser comme une liste Python
-                            parsed_data = ast.literal_eval(last_list_str)
+                            # Essayer d'abord avec json.loads, puis ast.literal_eval en fallback
+                            try:
+                                # Nettoyer la chaîne pour JSON
+                                json_str = last_list_str.replace("'", '"')
+                                parsed_data = json.loads(json_str)
+                            except json.JSONDecodeError:
+                                # Fallback vers ast.literal_eval
+                                parsed_data = ast.literal_eval(last_list_str)
                             
                             if isinstance(parsed_data, list):
                                 if parsed_data:
@@ -197,7 +210,18 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
                                             ticker = item.get('ticker', 'N/A')
                                             sentiment = item.get('sentiment', 'neutral')
                                             leverage = item.get('leverage', 'none')
+                                            take_profits = item.get('take_profits', [])
+                                            stop_loss = item.get('stop_loss')
+                                            entry_price = item.get('entry_price')
+                                            
                                             print(f"   📊 {ticker}: {sentiment} (levier: {leverage})")
+                                            if entry_price:
+                                                print(f"      🎯 Entry: {entry_price}")
+                                            if take_profits:
+                                                tp_str = ", ".join([str(tp) for tp in take_profits])
+                                                print(f"      📈 Take Profits: [{tp_str}]")
+                                            if stop_loss:
+                                                print(f"      ⛔ Stop Loss: {stop_loss}")
                                         else:
                                             print(f"   📊 {item}")
                                 else:
@@ -269,13 +293,19 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
                     if sentiment in ["long", "short"]:  # Exclure "neutral"
                         ticker = crypto.get("ticker", "")
                         leverage = crypto.get("leverage", "none")
+                        take_profits = crypto.get("take_profits", [])
+                        stop_loss = crypto.get("stop_loss")
+                        entry_price = crypto.get("entry_price")
                         
                         crypto_entry = {
                             "tweet_number": i,
                             "timestamp": result.get("created_at", ""),
                             "ticker": ticker,
                             "sentiment": sentiment,
-                            "leverage": leverage
+                            "leverage": leverage,
+                            "take_profits": take_profits if take_profits else [],
+                            "stop_loss": stop_loss,
+                            "entry_price": entry_price
                         }
                         consolidated_analysis["tweets_analysis"].append(crypto_entry)
                         

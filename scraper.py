@@ -61,9 +61,22 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
                             ticker = crypto_data.get('ticker', 'N/A')
                             sentiment = crypto_data.get('sentiment', 'neutral')
                             leverage = crypto_data.get('leverage', 'none')
+                            take_profits = crypto_data.get('take_profits', [])
+                            stop_loss = crypto_data.get('stop_loss')
+                            entry_price = crypto_data.get('entry_price')
+                            
                             emoji = "📈" if sentiment == "long" else "📉" if sentiment == "short" else "➡️"
                             lever_display = f" ({leverage})" if leverage and leverage != 'none' else ""
                             print(f"   {emoji} {ticker}: {sentiment.upper()}{lever_display}")
+                            
+                            # Afficher les prix si disponibles
+                            if entry_price:
+                                print(f"      🎯 Entry: {entry_price}")
+                            if take_profits:
+                                tp_str = ", ".join([str(tp) for tp in take_profits])
+                                print(f"      📈 Take Profits: [{tp_str}]")
+                            if stop_loss:
+                                print(f"      ⛔ Stop Loss: {stop_loss}")
                         else:
                             print(f"   💰 {crypto_data}")
                 else:
