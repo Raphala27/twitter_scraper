@@ -110,12 +110,12 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
             # Calcul des positions si demandé
             if calculate_positions and consolidated:
                 try:
-                    from moralis_api.position_calculator import calculate_positions, display_positions_summary
+                    from coincap_api.position_calculator import calculate_positions, display_positions_summary
                     positions_result = calculate_positions(cons_data)
                     display_positions_summary(positions_result)
                 except Exception as e:
                     print(f"⚠️ Erreur lors du calcul des positions: {e}")
-                    print(f"💡 Assurez-vous d'avoir installé 'requests' et configuré MORALIS_API_KEY dans .env")
+                    print(f"💡 Assurez-vous d'avoir installé 'requests' et configuré COINCAP_API_KEY dans .env")
         
         print("\n" + "🏁" * 20 + " FIN DE L'ANALYSE " + "🏁" * 20)
 
@@ -132,7 +132,7 @@ if __name__ == "__main__":
     parser.add_argument("--json", action="store_true", help="Output JSON instead of pretty text")
     parser.add_argument("--mock", action="store_true", help="Fetch posts in mock mode (no API calls)")
     parser.add_argument("--no-tools", action="store_true", help="Disable tools usage (legacy mode)")
-    parser.add_argument("--positions", action="store_true", help="Calculate trading positions with Moralis API")
+    parser.add_argument("--positions", action="store_true", help="Calculate trading positions with CoinCap API")
     parser.add_argument("--menu", action="store_true", help="Launch interactive menu")
     args = parser.parse_args()
 
