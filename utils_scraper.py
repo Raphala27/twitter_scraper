@@ -94,62 +94,62 @@ class UtilsScraper:
                     base_dt = datetime(2025, 1, 1) - timedelta(days=base_shift_days)
 
                     templates = [
-                    """[MOCK] #WBTC/USDT
+                    """[MOCK] #BTC/USDT
                         Signal type: SHORT
                         Leverage: 25x
-                        Entry : 0.42892
+                        Entry : 64200
                         Take Profit Targets:
-                        ➖ 0.50000
-                        ➖ 0.60000
-                        ➖ 0.70000
-                        ➖ 0.75000
-                        ➖ 0.78494
-                        ⚠️SL: 0.33332""",
+                        ➖ 63000
+                        ➖ 62000
+                        ➖ 61000
+                        ➖ 60000
+                        ➖ 59000
+                        ⚠️SL: 66000""",
                         
                     """#ETH/USDT LONG
                         👉Leverage : Cross 25×
-                        Entry : 0.6980 - 0.6800
+                        Entry : 3150 - 3100
                         Take Profit
-                        1) 0.7120
-                        2) 0.7300
-                        3) 0.7450
-                        ⭕Stoploss : 0.6700""",
+                        1) 3250
+                        2) 3350
+                        3) 3450
+                        ⭕Stoploss : 3000""",
 
                     """[MOCK] #SOL/USDT
                         Signal type: LONG
                         Leverage: 20x
-                        Entry : 1.23456
+                        Entry : 185.50
                         Take Profit Targets:
-                        ➖ 1.30000
-                        ➖ 1.35000
-                        ➖ 1.40000
-                        ➖ 1.45000
-                        ➖ 1.50000
-                        ⚠️SL: 1.10000""",
+                        ➖ 190.00
+                        ➖ 195.00
+                        ➖ 200.00
+                        ➖ 205.00
+                        ➖ 210.00
+                        ⚠️SL: 180.00""",
 
                     """[MOCK] #ADA/USDT
                         Signal type: SHORT
                         Leverage: 15x
-                        Entry : 0.31234
+                        Entry : 0.4850
                     
                         Take Profit Targets:
-                        ➖ 0.32000
-                        ➖ 0.33000
-                        ➖ 0.34000
-                        ➖ 0.35000
-                        ➖ 0.36000
-                        ⚠️SL: 0.30000""",
+                        ➖ 0.4750
+                        ➖ 0.4650
+                        ➖ 0.4550
+                        ➖ 0.4450
+                        ➖ 0.4350
+                        ⚠️SL: 0.5000""",
 
                     """[MOCK] #XRP/USDT LONG
                         Signal type: LONG
                         Leverage: 10x
-                        Entry : 0.45678
+                        Entry : 0.5250
                         Take Profit Targets:
-                        ➖ 0.50000
-                        ➖ 0.55000
-                        ➖ 0.60000
-                        ➖ 0.65000
-                        ⚠️SL: 0.40000""",
+                        ➖ 0.5400
+                        ➖ 0.5550
+                        ➖ 0.5700
+                        ➖ 0.5850
+                        ⚠️SL: 0.5000""",
                 ]
                     batch = []
                     for i in range(gen_n):
