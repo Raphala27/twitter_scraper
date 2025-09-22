@@ -1,9 +1,20 @@
+#!/usr/bin/env python3
+"""
+Position Simulator for Cryptocurrency Trading
+
+This module simulates cryptocurrency trading positions using historical price data
+from CoinCap API to evaluate the performance of AI-generated trading signals.
+"""
+
+# Standard library imports
 import os
+import time
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
+# Third-party imports
 import requests
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
-import time
 
 class PositionSimulator:
     """

@@ -1,21 +1,40 @@
-from pathlib import Path
-import requests
+#!/usr/bin/env python3
+"""
+Utilities for Twitter Scraping
+
+This module provides utility functions for Twitter data scraping using the TwitScoot API,
+including user ID resolution, tweet fetching, and mock data generation for testing.
+"""
+
+# Standard library imports
+import hashlib
 import json
 import os
-from dotenv import load_dotenv
-import hashlib
-from datetime import datetime, timedelta
 import random
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, Optional
+
+# Third-party imports
+import requests
+from dotenv import load_dotenv
 
 
 class UtilsScraper:
+    """Utility class for Twitter scraping operations."""
     
     @staticmethod
-    def resolve_user_id(user_or_handle: str, headers: dict, mock: bool = False) -> str | None:
+    def resolve_user_id(user_or_handle: str, headers: Dict[str, str], mock: bool = False) -> Optional[str]:
         """
-        Retourne l'ID numérique à partir d'un handle si nécessaire.
-        - Si `user_or_handle` est déjà un ID numérique, le retourne tel quel.
-        - Sinon, appelle GET /handle-to-id/{user_handle}.
+        Resolve a Twitter handle to a numeric user ID.
+        
+        Args:
+            user_or_handle: Twitter handle (@username) or numeric user ID
+            headers: HTTP headers including API authentication
+            mock: Use mock mode for testing (no API calls)
+        
+        Returns:
+            Numeric user ID as string, or None if resolution fails
         """
         candidate = user_or_handle.strip()
         if candidate.startswith("@"):
@@ -24,25 +43,44 @@ class UtilsScraper:
             return candidate
 
         if mock:
-            # ID stable basé sur MD5 du handle
-            h = hashlib.md5(candidate.encode("utf-8")).hexdigest()
-            return str(int(h[:12], 16) % 10_000_000_000)
+            # Generate stable ID based on MD5 hash of handle
+            hash_obj = hashlib.md5(candidate.encode("utf-8"))
+            return str(int(hash_obj.hexdigest()[:12], 16) % 10_000_000_000)
+        
         url = f"https://api.tweetscout.io/v2/handle-to-id/{candidate}"
-        # headers doivent contenir ApiKey et Accept
         try:
-            resp = requests.get(url, headers={"Accept": "application/json", **headers})
+            resp = requests.get(url, headers={"Accept": "application/json", **headers}, timeout=30)
             if resp.status_code != 200:
                 return None
             data = resp.json()
-            # On s'attend à un champ id ou id_str selon l'API; couvrir les deux
-            return str(data.get("id") or data.get("id_str")) if (data.get("id") or data.get("id_str")) else None
+            # Handle both 'id' and 'id_str' fields
+            user_id = data.get("id") or data.get("id_str")
+            return str(user_id) if user_id else None
         except Exception:
             return None
 
     @staticmethod
-    def get_user_tweets(user_or_handle: str, limit: int = 10, as_json: bool = False, link: str = None, start_cursor: str = None, mock: bool = False) -> str:
+    def get_user_tweets(
+        user_or_handle: str, 
+        limit: int = 10, 
+        as_json: bool = False, 
+        link: Optional[str] = None, 
+        start_cursor: Optional[str] = None, 
+        mock: bool = False
+    ) -> str:
         """
-        Récupère les N derniers tweets d'un compte Twitter en utilisant l'API TwitScoot.
+        Fetch the latest tweets from a Twitter account using TwitScoot API.
+        
+        Args:
+            user_or_handle: Twitter handle (@username) or numeric user ID
+            limit: Maximum number of tweets to fetch (1-100)
+            as_json: Return raw JSON response instead of formatted string
+            link: Optional specific link parameter for API
+            start_cursor: Pagination cursor for continuing from specific point
+            mock: Use mock mode for testing (no API calls)
+        
+        Returns:
+            JSON string of tweets or formatted text output
         """
         # Charger les variables d'environnement depuis le fichier .env
         env_path = Path('.') / '.env'
@@ -286,7 +324,7 @@ Take Profit Targets:
                         payload["cursor"] = next_cursor
 
                     # Utilisation de POST au lieu de GET
-                    response = requests.post(url, headers=headers, json=payload)
+                    response = requests.post(url, headers=headers, json=payload, timeout=30)
 
                     if response.status_code != 200:
                         return f"Erreur API: {response.status_code} - {response.text}"

@@ -1,43 +1,97 @@
+#!/usr/bin/env python3
+"""
+Ollama Integration Logic
+
+This module handles integration with Ollama for AI-powered tweet analysis,
+including model management, prompt generation, and tool usage for cryptocurrency
+ticker extraction and sentiment analysis.
+"""
+
+# Standard library imports
 import ast
 import json
-import subprocess
-import requests
-import sys
 import os
-from typing import List, Dict, Any
+import re
+import subprocess
+import sys
+from typing import Any, Dict, List
 
-# Ajouter le répertoire parent au path pour les imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Third-party imports
+import requests
 
-from utils_scraper import UtilsScraper as us
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from tools import Tools
+# Local application imports
+try:
+    # Try relative imports first (when used as package)
+    from .tools import Tools
+    from ..utils_scraper import UtilsScraper as us
+except ImportError:
+    # Fallback to absolute imports (when run directly)
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from tools import Tools
+    from utils_scraper import UtilsScraper as us
+
 
 def ensure_model_present(model: str) -> None:
-    """Pull the Ollama model if not present locally."""
+    """
+    Ensure the specified Ollama model is available locally.
+    
+    Args:
+        model: Name of the Ollama model to check/pull
+    """
     try:
-        # 'ollama show' returns non-zero if model not present
-        show = subprocess.run(["ollama", "show", model], capture_output=True)
+        # Check if model exists with 'ollama show'
+        show = subprocess.run(["ollama", "show", model], capture_output=True, timeout=30, check=False)
         if show.returncode != 0:
-            pull = subprocess.run(["ollama", "pull", model], check=False)
+            print(f"Model '{model}' not found locally. Pulling...")
+            pull = subprocess.run(["ollama", "pull", model], check=False, timeout=300)
             if pull.returncode != 0:
-                print(f"Warn: unable to pull model '{model}'. Ensure Ollama is running and the model name is correct.")
+                print(f"Warning: Unable to pull model '{model}'. "
+                      "Ensure Ollama is running and the model name is correct.")
     except FileNotFoundError:
-        print("Warn: 'ollama' CLI not found. Assuming Ollama API is reachable at http://localhost:11434.")
+        print("Warning: 'ollama' CLI not found. "
+              "Assuming Ollama API is reachable at http://localhost:11434.")
+    except subprocess.TimeoutExpired:
+        print(f"Warning: Timeout while checking/pulling model '{model}'.")
 
-def generate_with_ollama(model: str, prompt: str, url: str = "http://localhost:11434/api/generate") -> str:
-    """Call Ollama generate API with a simple prompt and return the full response text."""
-    payload = {"model": model, "prompt": prompt, "stream": False, "think": False}
+
+def generate_with_ollama(
+    model: str, 
+    prompt: str, 
+    url: str = "http://localhost:11434/api/generate"
+) -> str:
+    """
+    Call Ollama generate API with a prompt and return the response.
+    
+    Args:
+        model: Ollama model name
+        prompt: Text prompt to send to the model
+        url: Ollama API endpoint URL
+    
+    Returns:
+        Generated response text from the model
+    """
+    payload = {
+        "model": model, 
+        "prompt": prompt, 
+        "stream": False, 
+        "think": False
+    }
     headers = {"Content-Type": "application/json"}
+    
     resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=120)
     resp.raise_for_status()
     data = resp.json()
-    # standard response has key 'response'
     return data.get("response", "")
 
 
 def get_available_tools() -> List[Dict[str, Any]]:
-    """Returns the list of available tools that can be used by the model."""
+    """
+    Get the list of available tools for the AI model.
+    
+    Returns:
+        List of tool definitions for cryptocurrency analysis
+    """
     return [
         {
             "type": "function",
@@ -59,14 +113,23 @@ def get_available_tools() -> List[Dict[str, Any]]:
     ]
 
 
-# def execute_tool(tool_name: str, parameters: Dict[str, Any]) -> str:
-#     """Execute a tool function and return the result."""
-#     if tool_name == "extract_crypto_tickers":
-#         text = parameters.get("text", "")
-#         result = Tools.extract_unique_tickers(text)
-#         return json.dumps(result)
-#     else:
-#         return f"Unknown tool: {tool_name}"
+def execute_tool(tool_name: str, parameters: Dict[str, Any]) -> str:
+    """
+    Execute a tool function and return the result.
+    
+    Args:
+        tool_name: Name of the tool to execute
+        parameters: Parameters to pass to the tool
+    
+    Returns:
+        JSON string result from tool execution
+    """
+    if tool_name == "extract_crypto_tickers":
+        text = parameters.get("text", "")
+        result = Tools.extract_unique_tickers(text)
+        return json.dumps(result)
+    else:
+        return f"Unknown tool: {tool_name}"
 
 
 def generate_with_ollama_tools(model: str, prompt: str, tools: List[Dict[str, Any]] = None, url: str = "http://localhost:11434/api/generate") -> str:
@@ -137,7 +200,7 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
     ensure_model_present(model)
 
     results: List[Dict[str, Any]] = []
-    for idx, tw in enumerate(tweets, start=1):
+    for i, tw in enumerate(tweets, start=1):
         text = tw.get("full_text", "").strip()
         created = tw.get("created_at", "")
         tid = tw.get("id_str", "")
@@ -162,17 +225,13 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
             else:
                 # Mode sans tools : récupérer la réponse et extraire la liste finale
                 raw_response = generate_with_ollama(model=model, prompt=prompt)
-                print(f"🔍 RÉPONSE BRUTE DU MODÈLE:")
+                print("🔍 RÉPONSE BRUTE DU MODÈLE:")
                 print(f"'{raw_response}'")
                 print("─" * 60)
                 
                 try:
-                    # Extraire toutes les listes de la réponse avec regex améliorée
-                    import re
-                    import ast
-                    
-                    # Chercher des listes complètes dans la réponse
-                    # Cette regex gère les listes avec des objets imbriqués
+                    # Extract all lists from the response with improved regex
+                    # This regex handles lists with nested objects
                     list_pattern = r'\[(?:[^\[\]]|(?:\[[^\[\]]*\]))*\]'
                     matches = re.findall(list_pattern, raw_response, re.DOTALL)
                     
