@@ -34,7 +34,19 @@ class PositionSimulator:
             "XRP": {"current": 0.52, "volatility": 0.03},
             "DOGE": {"current": 0.08, "volatility": 0.06},
             "MATIC": {"current": 0.95, "volatility": 0.04},
-            "DOT": {"current": 8.50, "volatility": 0.04}
+            "DOT": {"current": 8.50, "volatility": 0.04},
+            "UNI": {"current": 7.00, "volatility": 0.05},
+            "LTC": {"current": 85.00, "volatility": 0.03},
+            "LINK": {"current": 14.50, "volatility": 0.04},
+            "AVAX": {"current": 35.00, "volatility": 0.05},
+            "ATOM": {"current": 8.20, "volatility": 0.04},
+            "BNB": {"current": 320.00, "volatility": 0.03},
+            "NEAR": {"current": 5.50, "volatility": 0.06},
+            "FTM": {"current": 0.75, "volatility": 0.07},
+            "ALGO": {"current": 0.25, "volatility": 0.06},
+            "ICP": {"current": 12.50, "volatility": 0.05},
+            "APT": {"current": 8.80, "volatility": 0.06},
+            "ARB": {"current": 1.20, "volatility": 0.05}
         }
     
     def get_headers(self):
@@ -384,6 +396,8 @@ class PositionSimulator:
                 
                 if result["results"]["position_closed"]:
                     print(f"🚪 Position fermée: {result['results']['exit_reason']}")
+            else:
+                print(f"❌ Erreur: {result['error']}")
             
             simulation_results.append(result)
             
@@ -395,12 +409,19 @@ class PositionSimulator:
         print(f"📊 RÉSUMÉ GLOBAL")
         print(f"💰 Capital total investi: ${total_capital:.2f}")
         print(f"📈 P&L total: {total_pnl:+.2f}$")
-        print(f"📊 ROI global: {(total_pnl/total_capital)*100:+.2f}%")
+        
+        # Éviter la division par zéro
+        if total_capital > 0:
+            roi_percent = (total_pnl/total_capital)*100
+            print(f"📊 ROI global: {roi_percent:+.2f}%")
+        else:
+            roi_percent = 0
+            print(f"📊 ROI global: N/A (aucune position simulée avec succès)")
         
         return {
             "total_capital": total_capital,
             "total_pnl": total_pnl,
-            "roi_percent": (total_pnl/total_capital)*100 if total_capital > 0 else 0,
+            "roi_percent": roi_percent,
             "positions_simulated": len(simulation_results),
             "individual_results": simulation_results
         }
