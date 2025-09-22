@@ -18,107 +18,32 @@ def load_env_file():
                     os.environ[key] = value
 
 
-def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool, mock: bool, use_tools: bool = True, calculate_positions: bool = False) -> None:
+def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool, mock_scraping: bool, mock_positions: bool, use_tools: bool = True, calculate_positions: bool = False, simulate_positions: bool = False, simulation_hours: int = 24) -> None:
     # Charger les variables d'environnement
     load_env_file()
     
-    results = process_tweets_with_ollama(u, lim, mdl, system_instruction=sysmsg, mock=mock, use_tools=use_tools)
+    results = process_tweets_with_ollama(u, lim, mdl, system_instruction=sysmsg, mock=mock_scraping, use_tools=use_tools)
     if as_json:
         print(json.dumps(results, indent=2, ensure_ascii=False))
     else:
-        print("\n" + "🐦" * 30 + " ANALYSE DES TWEETS " + "🐦" * 30)
+        print("\n" + "🐦" * 20 + " CONTENU DES TWEETS " + "🐦" * 20)
         
         # Séparer les tweets individuels de l'analyse consolidée
         tweet_results = [r for r in results if "consolidated_analysis" not in r]
         consolidated = next((r for r in results if "consolidated_analysis" in r), None)
         
-        # Afficher les tweets individuels
+        # Afficher uniquement le contenu des tweets
         for i, r in enumerate(tweet_results, start=1):
-            print(f"\n📝 TWEET #{i}")
-            print("─" * 60)
-            
-            # Affichage du contenu du tweet
             tweet_text = r.get('full_text', '')
-            if len(tweet_text) > 200:
-                tweet_text = tweet_text[:200] + "..."
-            print(f"💬 Contenu: {tweet_text}")
-            
-            # Affichage de l'analyse
-            analysis = r.get('analysis', '')
-            if isinstance(analysis, dict):
-                # Afficher le dictionnaire brut pour debug
-                print(f"🔧 Dictionnaire brut: {analysis}")
-                
-                # Format structuré avec cryptos
-                cryptos = analysis.get('cryptos', [])
-                timestamp = analysis.get('timestamp', '')
-                tweet_id = analysis.get('tweet_id', '')
-                
-                if cryptos:
-                    print(f"🔍 Cryptos analysées:")
-                    for crypto_data in cryptos:
-                        if isinstance(crypto_data, dict):
-                            ticker = crypto_data.get('ticker', 'N/A')
-                            sentiment = crypto_data.get('sentiment', 'neutral')
-                            leverage = crypto_data.get('leverage', 'none')
-                            take_profits = crypto_data.get('take_profits', [])
-                            stop_loss = crypto_data.get('stop_loss')
-                            entry_price = crypto_data.get('entry_price')
-                            
-                            emoji = "📈" if sentiment == "long" else "📉" if sentiment == "short" else "➡️"
-                            lever_display = f" ({leverage})" if leverage and leverage != 'none' else ""
-                            print(f"   {emoji} {ticker}: {sentiment.upper()}{lever_display}")
-                            
-                            # Afficher les prix si disponibles
-                            if entry_price:
-                                print(f"      🎯 Entry: {entry_price}")
-                            if take_profits:
-                                tp_str = ", ".join([str(tp) for tp in take_profits])
-                                print(f"      📈 Take Profits: [{tp_str}]")
-                            if stop_loss:
-                                print(f"      ⛔ Stop Loss: {stop_loss}")
-                        else:
-                            print(f"   💰 {crypto_data}")
-                else:
-                    print("🔍 Aucune crypto détectée")
-                
-                # Affichage de la date/heure précise
-                if timestamp:
-                    print(f"🕐 Timestamp: {timestamp}")
-                if tweet_id:
-                    print(f"🆔 Tweet ID: {tweet_id}")
-                    
-            elif isinstance(analysis, list):
-                # Format ancien (liste)
-                print(f"🔧 Liste brute: {analysis}")
-                if analysis:
-                    print(f"🔍 Cryptos détectées: {', '.join(str(x) for x in analysis)}")
-                else:
-                    print("🔍 Aucune crypto détectée")
-            else:
-                # Format texte brut
-                print(f"🔧 Texte brut: {analysis}")
-                print(f"🔍 Analyse: {analysis}")
-            
-            # Métadonnées (optionnel, plus discret)
-            if not isinstance(analysis, dict):  # Éviter la duplication si déjà affiché
-                if r.get('created_at') or r.get('id_str'):
-                    print(f"📅 {r.get('created_at', 'N/A')} | ID: {r.get('id_str', 'N/A')}")
+            if len(tweet_text) > 300:
+                tweet_text = tweet_text[:300] + "..."
+            print(f"\n� TWEET #{i}: {tweet_text}")
         
         # Afficher l'analyse consolidée
         if consolidated:
-            print("\n" + "📊" * 25 + " ANALYSE CONSOLIDÉE " + "📊" * 25)
+            print("\n" + "📊" * 20 + " ANALYSE CONSOLIDÉE " + "📊" * 20)
             cons_data = consolidated["consolidated_analysis"]
-            print(f"🔧 Dictionnaire consolidé complet:")
             print(json.dumps(cons_data, indent=2, ensure_ascii=False))
-            
-            summary = cons_data["analysis_summary"]
-            print(f"\n📈 RÉSUMÉ GLOBAL:")
-            print(f"   🏢 Compte: {cons_data['account']}")
-            print(f"   📝 Total tweets analysés: {cons_data['total_tweets']}")
-            print(f"   💰 Total positions: {summary['total_positions']}")
-            print(f"   📈 Positions long: {summary['long_positions']}")
-            print(f"   📉 Positions short: {summary['short_positions']}")
             
             # Calcul des positions si demandé
             if calculate_positions and consolidated:
@@ -129,8 +54,30 @@ def run_and_print(u: str, lim: int, mdl: str, sysmsg: str | None, as_json: bool,
                 except Exception as e:
                     print(f"⚠️ Erreur lors du calcul des positions: {e}")
                     print(f"💡 Assurez-vous d'avoir installé 'requests' et configuré COINCAP_API_KEY dans .env")
+            
+            # Simulation des positions si demandée
+            if simulate_positions and consolidated:
+                try:
+                    from coincap_api.position_simulator import PositionSimulator
+                    simulator = PositionSimulator(mock_mode=mock_positions)
+                    simulation_result = simulator.simulate_all_positions(cons_data)
+                    
+                    if "error" not in simulation_result:
+                        print(f"\n" + "�" * 20 + " RÉSULTATS PERFORMANCES " + "🎯" * 20)
+                        print(f"💰 Capital total: ${simulation_result['total_capital']:.2f}")
+                        print(f"📈 P&L total: {simulation_result['total_pnl']:+.2f}$")
+                        print(f"📊 ROI: {simulation_result['roi_percent']:+.2f}%")
+                    else:
+                        print(f"❌ Erreur simulation: {simulation_result['error']}")
+                        
+                except Exception as e:
+                    print(f"⚠️ Erreur lors de la simulation: {e}")
+                    if not mock_positions:
+                        print(f"💡 Assurez-vous d'avoir configuré COINCAP_API_KEY dans .env")
+                    else:
+                        print(f"💡 Erreur en mode mock positions")
         
-        print("\n" + "🏁" * 20 + " FIN DE L'ANALYSE " + "🏁" * 20)
+        print("\n" + "🏁" * 10 + " FIN DE L'ANALYSE " + "🏁" * 10)
 
 
 if __name__ == "__main__":
@@ -143,9 +90,13 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, default="qwen3:14b", help="Ollama model name/tag")
     parser.add_argument("--system", type=str, default=prompt, help="Optional system instruction to prepend")
     parser.add_argument("--json", action="store_true", help="Output JSON instead of pretty text")
-    parser.add_argument("--mock", action="store_true", help="Fetch posts in mock mode (no API calls)")
+    parser.add_argument("--mock-scraping", action="store_true", help="Fetch posts in mock mode (no API calls)")
+    parser.add_argument("--mock-positions", action="store_true", help="Use mock mode for position simulation (no CoinCap API calls)")
+    parser.add_argument("--mock", action="store_true", help="Enable both mock scraping and mock positions")
     parser.add_argument("--no-tools", action="store_true", help="Disable tools usage (legacy mode)")
     parser.add_argument("--positions", action="store_true", help="Calculate trading positions with CoinCap API")
+    parser.add_argument("--simulate", action="store_true", help="Simulate trading positions with historical prices")
+    parser.add_argument("--sim-hours", type=int, default=24, help="Hours to simulate (default: 24)")
     parser.add_argument("--menu", action="store_true", help="Launch interactive menu")
     args = parser.parse_args()
 
@@ -180,16 +131,20 @@ if __name__ == "__main__":
                 if not user:
                     print("Please set a user/handle first.")
                     continue
-                run_and_print(user, limit, model, system_msg, as_json=False, mock=True, use_tools=not args.no_tools if 'args' in locals() else True, calculate_positions=False)
+                run_and_print(user, limit, model, system_msg, as_json=False, mock_scraping=True, mock_positions=False, use_tools=not args.no_tools if 'args' in locals() else True, calculate_positions=False, simulate_positions=False, simulation_hours=24)
             elif choice == "6":
                 if not user:
                     print("Please set a user/handle first.")
                     continue
-                run_and_print(user, limit, model, system_msg, as_json=True, mock=True, use_tools=not args.no_tools if 'args' in locals() else True, calculate_positions=False)
+                run_and_print(user, limit, model, system_msg, as_json=True, mock_scraping=True, mock_positions=False, use_tools=not args.no_tools if 'args' in locals() else True, calculate_positions=False, simulate_positions=False, simulation_hours=24)
             elif choice == "7":
                 sys.exit(0)
             else:
                 print("Unknown option")
     else:
         # Direct CLI mode
-        run_and_print(args.user, args.limit, args.model, args.system, as_json=args.json, mock=args.mock, use_tools=not args.no_tools, calculate_positions=args.positions)
+        # Gérer les options mock
+        mock_scraping = args.mock_scraping or args.mock
+        mock_positions = args.mock_positions or args.mock
+        
+        run_and_print(args.user, args.limit, args.model, args.system, as_json=args.json, mock_scraping=mock_scraping, mock_positions=mock_positions, use_tools=not args.no_tools, calculate_positions=args.positions, simulate_positions=args.simulate, simulation_hours=args.sim_hours)
