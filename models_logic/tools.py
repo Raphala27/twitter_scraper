@@ -1,18 +1,28 @@
+#!/usr/bin/env python3
+"""
+AI Tools for Cryptocurrency Analysis
+
+This module provides tools for cryptocurrency ticker extraction and analysis
+that can be used by AI models to process trading signals from social media.
+"""
+
 import re
 from typing import List
 
+
 class Tools:
+    """Tools for cryptocurrency analysis and ticker extraction."""
     
     @staticmethod
-    def get_crypto_names_from_tickers(tickers: list[str]) -> list[str]:
+    def get_crypto_names_from_tickers(tickers: List[str]) -> List[str]:
         """
-        Prend une liste de tickers crypto et retourne les noms de crypto-monnaies correspondants.
+        Convert cryptocurrency tickers to their full names.
 
         Args:
-            tickers (list[str]): Liste de tickers (ex: ["BTC", "ETH"])
+            tickers: List of cryptocurrency tickers (e.g., ["BTC", "ETH"])
 
         Returns:
-            list[str]: Liste des noms de crypto-monnaies correspondants (ex: ["Bitcoin", "Ethereum"])
+            List of corresponding cryptocurrency names (e.g., ["Bitcoin", "Ethereum"])
         """
         # Dictionnaire de correspondance ticker -> nom de crypto-monnaie
         ticker_to_name = {

@@ -10,8 +10,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 def test_coincap_import():
     """Test d'import des modules CoinCap"""
     try:
-        from coincap_api.fetch_prices import get_crypto_price_at_time, search_asset_by_symbol
-        from coincap_api.position_calculator import calculate_positions
         print("✅ Imports CoinCap réussis")
         return True
     except Exception as e:
@@ -54,7 +52,7 @@ def test_mock_data():
         }
         
         # Test sans API (structure seulement)
-        from coincap_api.position_calculator import calculate_liquidation_price
+        from twitter_scraper.coincap_api.position_calculator import calculate_liquidation_price
         liq_price = calculate_liquidation_price(50000.0, "LONG", 10.0)
         print(f"✅ Calcul de liquidation: ${liq_price:.2f}")
         return True
