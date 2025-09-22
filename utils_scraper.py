@@ -94,63 +94,161 @@ class UtilsScraper:
                     base_dt = datetime(2025, 1, 1) - timedelta(days=base_shift_days)
 
                     templates = [
-                    """[MOCK] #BTC/USDT
-                        Signal type: SHORT
-                        Leverage: 25x
-                        Entry : 64200
-                        Take Profit Targets:
-                        ➖ 63000
-                        ➖ 62000
-                        ➖ 61000
-                        ➖ 60000
-                        ➖ 59000
-                        ⚠️SL: 66000""",
-                        
-                    """#ETH/USDT LONG
-                        👉Leverage : Cross 25×
-                        Entry : 3150 - 3100
-                        Take Profit
-                        1) 3250
-                        2) 3350
-                        3) 3450
-                        ⭕Stoploss : 3000""",
+                        """[MOCK] #BTC/USDT
+Signal type: SHORT
+Leverage: 25x
+Entry : 64200
+Take Profit Targets:
+➖ 63000
+➖ 62000
+➖ 61000
+➖ 60000
+➖ 59000
+⚠️SL: 66000""",
 
-                    """[MOCK] #SOL/USDT
-                        Signal type: LONG
-                        Leverage: 20x
-                        Entry : 185.50
-                        Take Profit Targets:
-                        ➖ 190.00
-                        ➖ 195.00
-                        ➖ 200.00
-                        ➖ 205.00
-                        ➖ 210.00
-                        ⚠️SL: 180.00""",
+                        """#ETH/USDT LONG
+👉Leverage : Cross 25×
+Entry : 3150 - 3100
+Take Profit
+1) 3250
+2) 3350
+3) 3450
+⭕Stoploss : 3000""",
 
-                    """[MOCK] #ADA/USDT
-                        Signal type: SHORT
-                        Leverage: 15x
-                        Entry : 0.4850
-                    
-                        Take Profit Targets:
-                        ➖ 0.4750
-                        ➖ 0.4650
-                        ➖ 0.4550
-                        ➖ 0.4450
-                        ➖ 0.4350
-                        ⚠️SL: 0.5000""",
+                        """[MOCK] #SOL/USDT
+Signal type: LONG
+Leverage: 20x
+Entry : 185.50
+Take Profit Targets:
+➖ 190.00
+➖ 195.00
+➖ 200.00
+➖ 205.00
+➖ 210.00
+⚠️SL: 180.00""",
 
-                    """[MOCK] #XRP/USDT LONG
-                        Signal type: LONG
-                        Leverage: 10x
-                        Entry : 0.5250
-                        Take Profit Targets:
-                        ➖ 0.5400
-                        ➖ 0.5550
-                        ➖ 0.5700
-                        ➖ 0.5850
-                        ⚠️SL: 0.5000""",
-                ]
+                        """[MOCK] #ADA/USDT
+Signal type: SHORT
+Leverage: 15x
+Entry : 0.4850
+Take Profit Targets:
+➖ 0.4750
+➖ 0.4650
+➖ 0.4550
+➖ 0.4450
+➖ 0.4350
+⚠️SL: 0.5000""",
+
+                        """[MOCK] #XRP/USDT LONG
+Signal type: LONG
+Leverage: 10x
+Entry : 0.5250
+Take Profit Targets:
+➖ 0.5400
+➖ 0.5550
+➖ 0.5700
+➖ 0.5850
+⚠️SL: 0.5000""",
+
+                        """[MOCK] #BNB/USDT SHORT
+Signal type: SHORT
+Leverage: 8x
+Entry : 590.00
+Take Profit Targets:
+➖ 580.00
+➖ 570.00
+➖ 560.00
+➖ 550.00
+⚠️SL: 610.00""",
+
+                        """[MOCK] #DOGE/USDT LONG
+Signal type: LONG
+Leverage: 12x
+Entry : 0.1500
+Take Profit Targets:
+➖ 0.1550
+➖ 0.1600
+➖ 0.1650
+➖ 0.1700
+⚠️SL: 0.1400""",
+
+                        """[MOCK] #MATIC/USDT SHORT
+Signal type: SHORT
+Leverage: 20x
+Entry : 0.7000
+Take Profit Targets:
+➖ 0.6900
+➖ 0.6800
+➖ 0.6700
+➖ 0.6600
+⚠️SL: 0.7200""",
+
+                        """[MOCK] #AVAX/USDT LONG
+Signal type: LONG
+Leverage: 18x
+Entry : 32.00
+Take Profit Targets:
+➖ 33.00
+➖ 34.00
+➖ 35.00
+➖ 36.00
+⚠️SL: 30.00""",
+
+                        """[MOCK] #DOT/USDT SHORT
+Signal type: SHORT
+Leverage: 14x
+Entry : 6.50
+Take Profit Targets:
+➖ 6.40
+➖ 6.30
+➖ 6.20
+➖ 6.10
+⚠️SL: 6.70""",
+
+                        """[MOCK] #LTC/USDT LONG
+Signal type: LONG
+Leverage: 16x
+Entry : 85.00
+Take Profit Targets:
+➖ 87.00
+➖ 89.00
+➖ 91.00
+➖ 93.00
+⚠️SL: 82.00""",
+
+                        """[MOCK] #TRX/USDT SHORT
+Signal type: SHORT
+Leverage: 10x
+Entry : 0.1200
+Take Profit Targets:
+➖ 0.1180
+➖ 0.1160
+➖ 0.1140
+➖ 0.1120
+⚠️SL: 0.1240""",
+
+                        """[MOCK] #LINK/USDT LONG
+Signal type: LONG
+Leverage: 22x
+Entry : 14.00
+Take Profit Targets:
+➖ 14.50
+➖ 15.00
+➖ 15.50
+➖ 16.00
+⚠️SL: 13.50""",
+
+                        """[MOCK] #UNI/USDT SHORT
+Signal type: SHORT
+Leverage: 9x
+Entry : 7.00
+Take Profit Targets:
+➖ 6.90
+➖ 6.80
+➖ 6.70
+➖ 6.60
+⚠️SL: 7.20""",
+                    ]
                     batch = []
                     for i in range(gen_n):
                         idx = start_idx + i
