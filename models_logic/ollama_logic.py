@@ -59,14 +59,14 @@ def get_available_tools() -> List[Dict[str, Any]]:
     ]
 
 
-def execute_tool(tool_name: str, parameters: Dict[str, Any]) -> str:
-    """Execute a tool function and return the result."""
-    if tool_name == "extract_crypto_tickers":
-        text = parameters.get("text", "")
-        result = Tools.extract_unique_tickers(text)
-        return json.dumps(result)
-    else:
-        return f"Unknown tool: {tool_name}"
+# def execute_tool(tool_name: str, parameters: Dict[str, Any]) -> str:
+#     """Execute a tool function and return the result."""
+#     if tool_name == "extract_crypto_tickers":
+#         text = parameters.get("text", "")
+#         result = Tools.extract_unique_tickers(text)
+#         return json.dumps(result)
+#     else:
+#         return f"Unknown tool: {tool_name}"
 
 
 def generate_with_ollama_tools(model: str, prompt: str, tools: List[Dict[str, Any]] = None, url: str = "http://localhost:11434/api/generate") -> str:
