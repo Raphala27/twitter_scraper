@@ -1,145 +1,195 @@
-## Analyze posts with Ollama
-## User info (Tweetscout)
-# Twitter Scraper avec TwitScoot API
+# Twitter Scraper with AI Analysis
 
-Ce script Python permet de récupérer les derniers tweets d'un compte Twitter en utilisant l'API TwitScoot.
+A Python application that scrapes Twitter data and analyzes cryptocurrency trading signals using AI (Ollama) with position simulation capabilities.
 
-## Installation
+## 🚀 Features
 
-1. Assurez-vous d'avoir Python 3.7+ installé
-2. Installez les dépendances:
-```bash
-pip install requests python-dotenv
+- **Twitter Scraping**: Fetch tweets from any Twitter account
+- **AI Analysis**: Extract cryptocurrency trading signals using Ollama
+- **Position Simulation**: Simulate trading positions with historical price data
+- **Mock Mode**: Test without API calls
+- **Multiple Output Formats**: JSON or formatted text output
+- **Comprehensive Testing**: Full test suite included
+
+## 📦 Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Raphala27/twitter_scraper.git
+   cd twitter_scraper
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Set up environment variables**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys
+   ```
+
+4. **Install Ollama** (if not already installed):
+   ```bash
+   # macOS
+   brew install ollama
+   
+   # Linux
+   curl -fsSL https://ollama.ai/install.sh | sh
+   ```
+
+5. **Start Ollama and pull a model**:
+   ```bash
+   ollama serve
+   ollama pull qwen3:14b
+   ```
+
+## ⚙️ Configuration
+
+Create a `.env` file with the following variables:
+
+```env
+# Required for real Twitter data (optional in mock mode)
+TWITSCOUT_API_KEY=your_twitscout_api_key
+
+# Required for position simulation (optional in mock mode)
+COINCAP_API_KEY=your_coincap_api_key
+
+# Optional: Ollama configuration
+OLLAMA_HOST=http://localhost:11434
 ```
 
-## Configuration
+## 🎯 Quick Start
 
-1. Obtenez votre clé API depuis [TweetScoot](https://tweetscout.io)
-2. Créez un fichier `.env` dans le répertoire du projet:
-```bash
-TWITSCOUT_API_KEY=votre_cle_api_ici
-```
-
-## Utilisation
-
-### Script principal (corrigé selon la documentation TwitScoot)
-```bash
-python twitter_scraper.py username --limit 10 --json
-```
-
-### Script avec gestion d'erreurs améliorée
-```bash
-python twitter_scraper_final.py username --limit 10 --json
-```
-
-### Paramètres
-- `username`: Le nom d'utilisateur Twitter (sans le '@')
-- `--limit`: Nombre de tweets à récupérer (max 100, défaut: 10)
-- `--json`: Afficher les données complètes en JSON
-
-## Exemples
+### Basic Usage
 
 ```bash
-# Récupérer 5 tweets de @elonmusk
-python twitter_scraper.py elonmusk --limit 5
+# Analyze tweets with AI (mock mode)
+python scraper.py @trader --limit 5 --mock-scraping --mock-positions
 
-# Récupérer 20 tweets en format JSON
-python twitter_scraper.py elonmusk --limit 20 --json
+# Analyze and simulate trading positions
+python scraper.py @trader --limit 3 --mock --simulate --sim-hours 2
+
+# Real data analysis (requires API keys)
+python scraper.py @trader --limit 5 --simulate
 ```
 
-## API TwitScoot - Format correct
+### Command Line Options
 
-Selon la documentation officielle TwitScoot, l'API utilise:
+| Option | Description | Default |
+|--------|-------------|---------|
+| `user` | Twitter handle or user ID | `@trader` |
+| `--limit` | Number of tweets to analyze | `2` |
+| `--model` | Ollama model to use | `qwen3:14b` |
+| `--mock-scraping` | Use mock tweets (no Twitter API) | `False` |
+| `--mock-positions` | Use mock prices (no CoinCap API) | `False` |
+| `--mock` | Enable both mock modes | `False` |
+| `--simulate` | Simulate trading positions | `False` |
+| `--sim-hours` | Hours to simulate | `24` |
+| `--json` | Output in JSON format | `False` |
+| `--no-tools` | Disable AI tools (legacy mode) | `False` |
 
-- **Méthode**: POST (pas GET)
-- **URL**: `https://api.tweetscout.io/v2/user-tweets`
-- **Headers**: 
-  - `Accept: application/json`
-  - `ApiKey: votre_cle_api`
-  - `Content-Type: application/json`
-- **Body**: JSON avec `link` et `user_id`
+## 📊 Examples
 
-### Exemple de requête cURL:
+### Example 1: Mock Analysis
 ```bash
-curl --request POST \
-  --url https://api.tweetscout.io/v2/user-tweets \
-  --header 'Accept: application/json' \
-  --header 'ApiKey: votre_cle_api' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "link": "https://twitter.com/username",
-    "user_id": "username"
-  }'
+python scraper.py @crypto_trader --limit 3 --mock --simulate --sim-hours 1
 ```
 
-## Résolution des problèmes
+**Output:**
+```
+🐦 CONTENU DES TWEETS 
+📝 TWEET #1: #BTC/USDT LONG Signal type: LONG...
 
-### Erreur "missing key in request header"
-✅ **RÉSOLU** - Le script utilise maintenant le bon format d'en-tête `ApiKey` selon la documentation TwitScoot.
+📊 ANALYSE CONSOLIDÉE 
+{
+  "account": "@crypto_trader",
+  "total_tweets": 3,
+  "analysis_summary": {
+    "total_positions": 3,
+    "long_positions": 2,
+    "short_positions": 1
+  },
+  "tweets_analysis": [...]
+}
 
-### Erreur 500 "Internal server error"
-Cette erreur peut indiquer:
-1. Le `user_id` doit être l'ID numérique Twitter au lieu du nom d'utilisateur
-2. Le compte Twitter n'existe pas ou est privé
-3. Problème temporaire avec l'API TwitScoot
+🎯 RÉSULTATS PERFORMANCES 
+💰 Capital total: $300.00
+📈 P&L total: +24.33$
+📊 ROI: +8.11%
+```
 
-### Erreur "La clé API n'est pas définie"
-1. Vérifiez que le fichier `.env` existe
-2. Vérifiez que la clé API est correctement définie dans le fichier `.env`
-3. Assurez-vous que la clé API est valide et active
-
-### Erreur 403 Forbidden
-- Vérifiez que votre clé API est correcte
-- Vérifiez que votre compte TwitScoot a les permissions nécessaires
-- Contactez le support TwitScoot si le problème persiste
-
-## Fichiers
-
-- `twitter_scraper.py`: Script principal corrigé selon la documentation TwitScoot
-- `twitter_scraper_corrected.py`: Version alternative avec le même format
-- `twitter_scraper_final.py`: Script avec gestion d'erreurs améliorée (formats multiples)
-- `twitter_scraper_old.py`: Sauvegarde de l'ancienne version
-- `twitter_scraper_backup.py`: Sauvegarde du script original
-- `.env`: Fichier de configuration (à créer)
-- `README.md`: Ce fichier
-
-## Notes importantes
-
-- Le script utilise maintenant le format d'API correct selon la documentation TwitScoot
-- Méthode POST avec headers `ApiKey` au lieu de `Authorization`
-- URL corrigée: `/v2/user-tweets` au lieu de `/v2/user/tweets`
-- Le champ `full_text` est utilisé au lieu de `text` pour extraire le contenu des tweets
-- Si vous obtenez une erreur 500, vous devrez peut-être utiliser l'ID numérique Twitter au lieu du nom d'utilisateur
-
-## Prochaines étapes
-
-Si vous continuez à avoir des erreurs 500:
-1. Essayez d'utiliser l'ID numérique Twitter au lieu du nom d'utilisateur
-2. Vérifiez que le compte Twitter existe et est public
-3. Contactez le support TwitScoot pour obtenir de l'aide
-
-### Usage
+### Example 2: Real Data with Position Simulation
 ```bash
-python tweetscout_user_info.py 44196397
+python scraper.py @actual_trader --limit 5 --simulate --sim-hours 6
 ```
 
-- Endpoint: GET /info/id/{user_id}
-- Auth header: ApiKey: <your_key>
-- Docs: https://api.tweetscout.io/v2/docs/#/paths/info-id-user_id/get
+## 🏗️ Architecture
 
+```
+twitter_scraper/
+├── scraper.py              # Main entry point
+├── utils_scraper.py        # Twitter scraping utilities
+├── models_logic/           # AI analysis
+│   ├── ollama_logic.py     # Ollama integration
+│   └── tools.py            # AI tools for crypto analysis
+├── coincap_api/            # Price data and simulation
+│   ├── fetch_prices.py     # Price fetching
+│   ├── position_calculator.py
+│   └── position_simulator.py
+├── tests/                  # Test suite
+├── docs/                   # Documentation
+└── examples/               # Usage examples
+```
 
-### Usage
+## 🧪 Testing
+
+Run the test suite:
+
 ```bash
-# Analyze 20 latest posts from a handle with a specific model
-python process_with_ollama.py @elonmusk --limit 20 --model llama3.1:8b
+# Run all tests
+python -m pytest tests/
 
-# Output JSON
-python process_with_ollama.py 44196397 --limit 10 --json
-
-# With a custom instruction
-python process_with_ollama.py @elonmusk --limit 5 --system "Classify tone and extract main claims"
+# Run specific test categories
+python tests/test_ollama_tools.py
+python tests/test_tools.py
 ```
 
-Assumes Ollama daemon is running at http://localhost:11434.
-If not, start with: `ollama serve` and ensure the model is available (the script attempts to `ollama pull <model>` if needed).
+## 📚 Documentation
+
+- [Usage Guide](docs/USAGE.md) - Detailed usage examples
+- [API Reference](docs/API.md) - API documentation
+- [Architecture](docs/ARCHITECTURE.md) - Technical details
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes and add tests
+4. Run the test suite: `python -m pytest`
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+**"Ollama connection error"**
+- Ensure Ollama is running: `ollama serve`
+- Check if the model exists: `ollama list`
+
+**"API key not found"**
+- Verify `.env` file exists and contains valid keys
+- For testing, use mock modes: `--mock`
+
+**"No cryptocurrency data found"**
+- Check if the Twitter account posts trading signals
+- Verify the AI model can extract trading data
+- Use `--no-tools` for legacy mode
+
+For more help, see our [troubleshooting guide](docs/TROUBLESHOOTING.md).
 

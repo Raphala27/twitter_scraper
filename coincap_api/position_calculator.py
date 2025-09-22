@@ -1,5 +1,16 @@
+#!/usr/bin/env python3
+"""
+Position Calculator for Cryptocurrency Trading
+
+This module calculates trading positions based on AI analysis results,
+including position sizing, risk management, and performance metrics.
+"""
+
+# Standard library imports
 import os
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
+# Local application imports
 from .fetch_prices import fetch_prices_for_cryptos
 
 def load_env_file():

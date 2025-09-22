@@ -1,9 +1,21 @@
-import os
-import requests
-from typing import List, Dict, Optional
-from datetime import datetime
-import time
+#!/usr/bin/env python3
+"""
+CoinCap API Price Fetching
 
+This module handles cryptocurrency price data fetching from the CoinCap API,
+including asset search, current prices, and historical data retrieval.
+"""
+
+# Standard library imports
+import os
+import time
+from datetime import datetime
+from typing import Dict, List, Optional
+
+# Third-party imports
+import requests
+
+# Global configuration
 COINCAP_API_KEY = os.environ.get("COINCAP_API_KEY", "")
 
 def search_asset_by_symbol(symbol: str, api_key: str) -> Optional[str]:
