@@ -44,7 +44,8 @@ def run_and_print(
     use_tools: bool = True,
     calculate_positions: bool = False,
     simulate_positions: bool = False,
-    simulation_hours: int = 24
+    simulation_hours: int = 24,
+    api_provider: str = "coincap"
 ) -> None:
     """
     Main function to run tweet analysis and optionally simulate positions.
@@ -78,14 +79,15 @@ def run_and_print(
         return
     
     # Format output for console display
-    _display_results(results, calculate_positions, simulate_positions, mock_positions)
+    _display_results(results, calculate_positions, simulate_positions, mock_positions, api_provider)
 
 
 def _display_results(
     results: list,
     calculate_positions: bool,
     simulate_positions: bool,
-    mock_positions: bool
+    mock_positions: bool,
+    api_provider: str = "coincap"
 ) -> None:
     """Display results in formatted console output."""
     print("\n" + "🐦" * 20 + " CONTENU DES TWEETS " + "🐦" * 20)
@@ -113,7 +115,7 @@ def _display_results(
         
         # Simulate positions if requested
         if simulate_positions:
-            _handle_position_simulation(cons_data, mock_positions)
+            _handle_position_simulation(cons_data, mock_positions, api_provider)
     
     print("\n" + "🏁" * 10 + " FIN DE L'ANALYSE " + "🏁" * 10)
 
@@ -132,14 +134,33 @@ def _handle_position_calculation(consolidated_data: dict) -> None:
         print("💡 Assurez-vous d'avoir configuré COINCAP_API_KEY dans .env")
 
 
-def _handle_position_simulation(consolidated_data: dict, mock_positions: bool) -> None:
+def _handle_position_simulation(consolidated_data: dict, mock_positions: bool, api_provider: str = "coincap") -> None:
     """Handle position simulation."""
     try:
-        try:
-            from .coincap_api import PositionSimulator
-        except ImportError:
-            from coincap_api import PositionSimulator
-        simulator = PositionSimulator(mock_mode=mock_positions)
+        # Configure API based on provider choice
+        if api_provider == "coingecko":
+            try:
+                from .api_manager import create_api_manager, APIProvider
+            except ImportError:
+                from api_manager import create_api_manager, APIProvider
+            
+            # Use CoinGecko with CoinCap fallback
+            api_manager = create_api_manager({
+                "primary_api": APIProvider.COINGECKO,
+                "enable_fallback": True,
+                "mock_mode": mock_positions
+            })
+            simulator = api_manager.create_simulator()
+            print(f"🦎 Utilisation de CoinGecko API pour la simulation")
+        else:
+            # Default CoinCap
+            try:
+                from .coincap_api import PositionSimulator
+            except ImportError:
+                from coincap_api import PositionSimulator
+            simulator = PositionSimulator(mock_mode=mock_positions)
+            print(f"📊 Utilisation de CoinCap API pour la simulation")
+        
         simulation_result = simulator.simulate_all_positions(consolidated_data)
         
         if "error" not in simulation_result:
@@ -150,10 +171,11 @@ def _handle_position_simulation(consolidated_data: dict, mock_positions: bool) -
         else:
             print(f"❌ Erreur simulation: {simulation_result['error']}")
             
-    except Exception as e:
+    except (ImportError, ValueError, TypeError) as e:
         print(f"⚠️ Erreur lors de la simulation: {e}")
         if not mock_positions:
-            print("💡 Assurez-vous d'avoir configuré COINCAP_API_KEY dans .env")
+            api_key_name = "COINGECKO_API_KEY" if api_provider == "coingecko" else "COINCAP_API_KEY"
+            print(f"💡 Assurez-vous d'avoir configuré {api_key_name} dans .env")
         else:
             print("💡 Erreur en mode mock positions")
 
@@ -174,6 +196,7 @@ if __name__ == "__main__":
     parser.add_argument("--positions", action="store_true", help="Calculate trading positions with CoinCap API")
     parser.add_argument("--simulate", action="store_true", help="Simulate trading positions with historical prices")
     parser.add_argument("--sim-hours", type=int, default=24, help="Hours to simulate (default: 24)")
+    parser.add_argument("--api", type=str, choices=["coincap", "coingecko"], default="coincap", help="Cryptocurrency API to use (default: coincap)")
     parser.add_argument("--menu", action="store_true", help="Launch interactive menu")
     args = parser.parse_args()
 
@@ -241,5 +264,5 @@ if __name__ == "__main__":
             as_json=args.json, mock_scraping=mock_scraping, 
             mock_positions=mock_positions, use_tools=not args.no_tools, 
             calculate_positions=args.positions, simulate_positions=args.simulate, 
-            simulation_hours=args.sim_hours
+            simulation_hours=args.sim_hours, api_provider=args.api
         )
