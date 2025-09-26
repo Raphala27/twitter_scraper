@@ -45,7 +45,8 @@ def run_and_print(
     calculate_positions: bool = False,
     simulate_positions: bool = False,
     simulation_hours: int = 24,
-    api_provider: str = "coincap"
+    api_provider: str = "coincap",
+    validate_sentiment: bool = False
 ) -> None:
     """
     Main function to run tweet analysis and optionally simulate positions.
@@ -79,7 +80,7 @@ def run_and_print(
         return
     
     # Format output for console display
-    _display_results(results, calculate_positions, simulate_positions, mock_positions, api_provider)
+    _display_results(results, calculate_positions, simulate_positions, mock_positions, api_provider, validate_sentiment)
 
 
 def _display_results(
@@ -87,7 +88,8 @@ def _display_results(
     calculate_positions: bool,
     simulate_positions: bool,
     mock_positions: bool,
-    api_provider: str = "coincap"
+    api_provider: str = "coincap",
+    validate_sentiment: bool = False
 ) -> None:
     """Display results in formatted console output."""
     print("\n" + "🐦" * 20 + " CONTENU DES TWEETS " + "🐦" * 20)
@@ -116,6 +118,10 @@ def _display_results(
         # Simulate positions if requested
         if simulate_positions:
             _handle_position_simulation(cons_data, mock_positions, api_provider)
+        
+        # Validate sentiment predictions if requested
+        if validate_sentiment:
+            _handle_sentiment_validation(cons_data, mock_positions)
     
     print("\n" + "🏁" * 10 + " FIN DE L'ANALYSE " + "🏁" * 10)
 
@@ -151,7 +157,7 @@ def _handle_position_simulation(consolidated_data: dict, mock_positions: bool, a
                 "mock_mode": mock_positions
             })
             simulator = api_manager.create_simulator()
-            print(f"🦎 Utilisation de CoinGecko API pour la simulation")
+            print("🦎 Utilisation de CoinGecko API pour la simulation")
         else:
             # Default CoinCap
             try:
@@ -159,7 +165,7 @@ def _handle_position_simulation(consolidated_data: dict, mock_positions: bool, a
             except ImportError:
                 from coincap_api import PositionSimulator
             simulator = PositionSimulator(mock_mode=mock_positions)
-            print(f"📊 Utilisation de CoinCap API pour la simulation")
+            print("📊 Utilisation de CoinCap API pour la simulation")
         
         simulation_result = simulator.simulate_all_positions(consolidated_data)
         
@@ -180,10 +186,100 @@ def _handle_position_simulation(consolidated_data: dict, mock_positions: bool, a
             print("💡 Erreur en mode mock positions")
 
 
-if __name__ == "__main__":
-    prompt = "You are a crypto analyst. Extract cryptocurrency information from social media posts."
+def _handle_sentiment_validation(consolidated_data: dict, mock_mode: bool = False) -> None:
+    """Handle sentiment validation over time."""
+    print("\n" + "⏰" * 20 + " VALIDATION TEMPORELLE " + "⏰" * 20)
+    
+    try:
+        try:
+            from .coingecko_api.sentiment_validator import SentimentValidator
+        except ImportError:
+            from coingecko_api.sentiment_validator import SentimentValidator
+        
+        # Initialize validator with mock mode option
+        validator = SentimentValidator(mock_mode=mock_mode)
+        
+        # Extract sentiment data with timestamps from consolidated analysis
+        sentiment_data_list = []
+        
+        # Convert consolidated analysis to format expected by validator
+        tweets_analysis = consolidated_data.get("tweets_analysis", [])
+        if not tweets_analysis:
+            # Fallback: try to extract from consolidated_data if it's a list
+            if isinstance(consolidated_data, list):
+                for analysis in consolidated_data:
+                    if isinstance(analysis, dict):
+                        sentiment_data = {
+                            "ticker": analysis.get("ticker", ""),
+                            "sentiment": analysis.get("sentiment", "neutral"),
+                            "context": analysis.get("context", ""),
+                            "timestamp": analysis.get("timestamp", "2025-01-01T00:00:00Z")
+                        }
+                        sentiment_data_list.append(sentiment_data)
+        else:
+            # Standard format from consolidated analysis
+            for analysis in tweets_analysis:
+                if isinstance(analysis, dict):
+                    sentiment_data = {
+                        "ticker": analysis.get("ticker", ""),
+                        "sentiment": analysis.get("sentiment", "neutral"),
+                        "context": analysis.get("context", ""),
+                        "timestamp": analysis.get("timestamp", "2025-01-01T00:00:00Z")
+                    }
+                    sentiment_data_list.append(sentiment_data)
+        
+        if not sentiment_data_list:
+            print("❌ Aucune donnée de sentiment trouvée pour la validation")
+            return
+        
+        # Validate all sentiments
+        validation_results = validator.validate_all_sentiments(sentiment_data_list)
+        
+        # Display results
+        print(f"\n📊 Statistiques globales:")
+        stats = validation_results["global_stats"]
+        total = stats["total_predictions"]
+        
+        if total > 0:
+            print(f"   Total prédictions: {total}")
+            print(f"   Précision 1h:  {stats['correct_1h']}/{total} ({stats['correct_1h']/total*100:.1f}%)")
+            print(f"   Précision 24h: {stats['correct_24h']}/{total} ({stats['correct_24h']/total*100:.1f}%)")
+            print(f"   Précision 7j:  {stats['correct_7d']}/{total} ({stats['correct_7d']/total*100:.1f}%)")
+            print(f"   Score moyen 1h:  {stats['avg_accuracy_1h']:.1f}/100")
+            print(f"   Score moyen 24h: {stats['avg_accuracy_24h']:.1f}/100")
+            print(f"   Score moyen 7j:  {stats['avg_accuracy_7d']:.1f}/100")
+        
+        # Also display detailed results for each prediction
+        print(f"\n🔍 Détails par prédiction:")
+        for result in validation_results["validation_results"]:
+            ticker = result["ticker"]
+            sentiment = result["sentiment"]
+            base_price = result.get("base_price", 0)
+            
+            print(f"\n🪙 {ticker} ({sentiment}) - Base: ${base_price:.2f}")
+            validations = result.get("validations", {})
+            for period, validation in validations.items():
+                if "error" in validation:
+                    print(f"   {period:>3}: ⚠️  {validation['error']}")
+                else:
+                    correct = "✅" if validation.get("correct", False) else "❌"
+                    price_change = validation.get("price_change_pct", 0)
+                    actual = validation.get("actual_direction", "unknown")
+                    score = validation.get("accuracy_score", 0)
+                    print(f"   {period:>3}: {correct} {price_change:+.2f}% (Score: {score:.0f})")
+        
+    except (ImportError, ValueError, TypeError) as e:
+        print(f"⚠️ Erreur lors de la validation de sentiment: {e}")
+        if not mock_mode:
+            print("💡 Assurez-vous d'avoir configuré COINGECKO_API_KEY dans .env pour l'historique des prix")
+        else:
+            print("💡 Erreur en mode mock de validation")
 
-    parser = argparse.ArgumentParser(description="Analyze latest posts with an Ollama model and crypto ticker extraction.")
+
+if __name__ == "__main__":
+    prompt = "You are a crypto sentiment analyst. Analyze cryptocurrency sentiment from social media posts and detect if influencers are bullish, bearish, or neutral on specific cryptocurrencies."
+
+    parser = argparse.ArgumentParser(description="Analyze crypto sentiment in posts and validate influencer predictions over time.")
     parser.add_argument("user", nargs="?", default="swissborg", help="Twitter numeric user_id or handle (e.g., 44196397 or @elonmusk)")
     parser.add_argument("--limit", type=int, default=2, help="Number of posts to fetch")
     parser.add_argument("--model", type=str, default="qwen3:14b", help="Ollama model name/tag")
@@ -195,6 +291,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-tools", action="store_true", help="Disable tools usage (legacy mode)")
     parser.add_argument("--positions", action="store_true", help="Calculate trading positions with CoinCap API")
     parser.add_argument("--simulate", action="store_true", help="Simulate trading positions with historical prices")
+    parser.add_argument("--validate-sentiment", action="store_true", help="Validate sentiment predictions over time (1h, 24h, 7d)")
     parser.add_argument("--sim-hours", type=int, default=24, help="Hours to simulate (default: 24)")
     parser.add_argument("--api", type=str, choices=["coincap", "coingecko"], default="coincap", help="Cryptocurrency API to use (default: coincap)")
     parser.add_argument("--menu", action="store_true", help="Launch interactive menu")
@@ -264,5 +361,6 @@ if __name__ == "__main__":
             as_json=args.json, mock_scraping=mock_scraping, 
             mock_positions=mock_positions, use_tools=not args.no_tools, 
             calculate_positions=args.positions, simulate_positions=args.simulate, 
-            simulation_hours=args.sim_hours, api_provider=args.api
+            simulation_hours=args.sim_hours, api_provider=args.api, 
+            validate_sentiment=args.validate_sentiment
         )
