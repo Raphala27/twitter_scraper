@@ -63,6 +63,30 @@ def search_asset_by_symbol(symbol: str, api_key: str = None) -> Optional[str]:
     Returns:
         Asset ID string or None if not found
     """
+    # Mapping direct pour les cryptos principales pour éviter les confusions
+    MAIN_CRYPTO_MAPPING = {
+        "BTC": "bitcoin",
+        "ETH": "ethereum", 
+        "SOL": "solana",
+        "ADA": "cardano",
+        "XRP": "ripple",
+        "BNB": "binancecoin",
+        "DOGE": "dogecoin",
+        "DOT": "polkadot",
+        "AVAX": "avalanche-2",
+        "LINK": "chainlink",
+        "UNI": "uniswap",
+        "LTC": "litecoin",
+        "TRX": "tron",
+        "MATIC": "matic-network"
+    }
+    
+    # Vérifier d'abord le mapping direct
+    symbol_upper = symbol.upper()
+    if symbol_upper in MAIN_CRYPTO_MAPPING:
+        return MAIN_CRYPTO_MAPPING[symbol_upper]
+    
+    # Sinon, chercher dans l'API
     url = "https://api.coingecko.com/api/v3/coins/list"
     headers = {}
     if api_key:
@@ -73,11 +97,22 @@ def search_asset_by_symbol(symbol: str, api_key: str = None) -> Optional[str]:
         response.raise_for_status()
         
         coins = response.json()
-        for coin in coins:
-            if coin.get("symbol", "").upper() == symbol.upper():
-                return coin.get("id")
         
-        return None
+        # Prioriser les coins avec des market cap plus élevés
+        # En cherchant d'abord ceux avec des IDs courts et connus
+        matching_coins = []
+        for coin in coins:
+            if coin.get("symbol", "").upper() == symbol_upper:
+                matching_coins.append(coin)
+        
+        if not matching_coins:
+            return None
+        
+        # Prioriser par ordre de "popularité" basé sur la longueur de l'ID
+        # Les cryptos principales ont généralement des IDs courts
+        matching_coins.sort(key=lambda x: (len(x.get("id", "")), x.get("id", "")))
+        
+        return matching_coins[0].get("id")
         
     except requests.RequestException as e:
         print(f"Erreur lors de la recherche de {symbol}: {e}")

@@ -127,9 +127,10 @@ class UtilsScraper:
                     seed_input = f"{user_id}:{next_cursor or '0'}"
                     seed = int(hashlib.md5(seed_input.encode("utf-8")).hexdigest()[:12], 16)
                     rnd = random.Random(seed)
-                    # Base de date déterministe
-                    base_shift_days = int(hashlib.md5(user_id.encode("utf-8")).hexdigest()[:6], 16) % 365
-                    base_dt = datetime(2025, 1, 1) - timedelta(days=base_shift_days)
+                    # Base de date déterministe mais récente (début septembre 2025)
+                    # Utiliser les 3-5 septembre 2025 pour avoir plus de recul temporel
+                    base_shift_days = int(hashlib.md5(user_id.encode("utf-8")).hexdigest()[:6], 16) % 3  # 0-2 jours
+                    base_dt = datetime(2025, 9, 5) - timedelta(days=base_shift_days)  # 3, 4 ou 5 septembre 2025
                     templates = [
                         "Just my take on #BTC: It's been volatile, but I'm bullish long-term. Could see 100k by year-end if the market stabilizes. What do you think? #Crypto",
                         "ETH is looking strong with all the upgrades. Bullish on Ethereum – might hit 4k soon. DYOR though! #ETH #Ethereum",
@@ -151,8 +152,8 @@ class UtilsScraper:
                         # Texte stable: choix de template déterministe
                         t_idx = int(hashlib.md5(f"template:{user_id}:{idx}".encode("utf-8")).hexdigest()[:6], 16) % len(templates)
                         text = templates[t_idx].format(idx=idx, user_id=user_id)
-                        # Date stable: quelques minutes d'écart par idx
-                        created_at = (base_dt - timedelta(minutes=idx * (5 + rnd.randint(0, 3)))).isoformat() + "Z"
+                        # Date stable: quelques heures d'écart par idx (pour rester récent)
+                        created_at = (base_dt - timedelta(hours=idx * (1 + rnd.randint(0, 2)))).isoformat() + "Z"
                         batch.append({
                             "id_str": tid,
                             "created_at": created_at,
