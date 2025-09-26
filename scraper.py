@@ -47,7 +47,7 @@ def run_and_print(
     simulation_hours: int = 24,
     api_provider: str = "coincap",
     validate_sentiment: bool = False
-) -> None:
+) -> Optional[dict]:
     """
     Main function to run tweet analysis and optionally simulate positions.
     
@@ -63,6 +63,9 @@ def run_and_print(
         calculate_positions: Calculate trading positions
         simulate_positions: Simulate position performance
         simulation_hours: Hours to simulate
+        
+    Returns:
+        dict: Consolidated analysis with validation results (if available)
     """
     # Load environment variables
     load_env_file()
@@ -77,10 +80,12 @@ def run_and_print(
     
     if as_json:
         print(json.dumps(results, indent=2, ensure_ascii=False))
-        return
+        return None
     
-    # Format output for console display
-    _display_results(results, calculate_positions, simulate_positions, mock_positions, api_provider, validate_sentiment)
+    # Format output for console display and get structured result
+    structured_result = _display_results(results, calculate_positions, simulate_positions, mock_positions, api_provider, validate_sentiment)
+    
+    return structured_result
 
 
 def _display_results(
@@ -90,8 +95,8 @@ def _display_results(
     mock_positions: bool,
     api_provider: str = "coincap",
     validate_sentiment: bool = False
-) -> None:
-    """Display results in formatted console output."""
+) -> Optional[dict]:
+    """Display results in formatted console output and return structured data."""
     print("\n" + "🐦" * 20 + " CONTENU DES TWEETS " + "🐦" * 20)
     
     # Separate individual tweets from consolidated analysis
@@ -121,9 +126,21 @@ def _display_results(
         
         # Validate sentiment predictions if requested
         if validate_sentiment:
-            _handle_sentiment_validation(cons_data, mock_positions)
+            validation_data = _handle_sentiment_validation(cons_data, mock_positions)
+            # Add validation results to consolidated data
+            cons_data["sentiment_validation"] = validation_data
+            
+            # Display the final structured result
+            print("\n" + "📋" * 20 + " RÉSULTAT STRUCTURÉ FINAL " + "📋" * 20)
+            print(json.dumps(cons_data, indent=2, ensure_ascii=False))
+        
+        print("\n" + "🏁" * 10 + " FIN DE L'ANALYSE " + "🏁" * 10)
+        
+        # Return the consolidated data with all results
+        return cons_data
     
     print("\n" + "🏁" * 10 + " FIN DE L'ANALYSE " + "🏁" * 10)
+    return None
 
 
 def _handle_position_calculation(consolidated_data: dict) -> None:
@@ -186,8 +203,8 @@ def _handle_position_simulation(consolidated_data: dict, mock_positions: bool, a
             print("💡 Erreur en mode mock positions")
 
 
-def _handle_sentiment_validation(consolidated_data: dict, mock_mode: bool = False) -> None:
-    """Handle sentiment validation over time."""
+def _handle_sentiment_validation(consolidated_data: dict, mock_mode: bool = False) -> dict:
+    """Handle sentiment validation over time and return results."""
     print("\n" + "⏰" * 20 + " VALIDATION TEMPORELLE " + "⏰" * 20)
     
     try:
@@ -230,7 +247,11 @@ def _handle_sentiment_validation(consolidated_data: dict, mock_mode: bool = Fals
         
         if not sentiment_data_list:
             print("❌ Aucune donnée de sentiment trouvée pour la validation")
-            return
+            return {
+                "validation_status": "error",
+                "error_message": "Aucune donnée de sentiment trouvée",
+                "results": {}
+            }
         
         # Validate all sentiments
         validation_results = validator.validate_all_sentiments(sentiment_data_list)
@@ -268,12 +289,34 @@ def _handle_sentiment_validation(consolidated_data: dict, mock_mode: bool = Fals
                     score = validation.get("accuracy_score", 0)
                     print(f"   {period:>3}: {correct} {price_change:+.2f}% (Score: {score:.0f})")
         
+        # Return structured results
+        return {
+            "validation_status": "success",
+            "global_stats": validation_results["global_stats"],
+            "validation_results": validation_results["validation_results"],
+            "summary": {
+                "total_predictions": total,
+                "accuracy_1h_percent": stats['correct_1h']/total*100 if total > 0 else 0,
+                "accuracy_24h_percent": stats['correct_24h']/total*100 if total > 0 else 0,
+                "accuracy_7d_percent": stats['correct_7d']/total*100 if total > 0 else 0,
+                "avg_score_1h": stats['avg_accuracy_1h'],
+                "avg_score_24h": stats['avg_accuracy_24h'],
+                "avg_score_7d": stats['avg_accuracy_7d']
+            }
+        }
+        
     except (ImportError, ValueError, TypeError) as e:
         print(f"⚠️ Erreur lors de la validation de sentiment: {e}")
         if not mock_mode:
             print("💡 Assurez-vous d'avoir configuré COINGECKO_API_KEY dans .env pour l'historique des prix")
         else:
             print("💡 Erreur en mode mock de validation")
+        
+        return {
+            "validation_status": "error",
+            "error_message": str(e),
+            "results": {}
+        }
 
 
 if __name__ == "__main__":
