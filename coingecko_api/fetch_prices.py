@@ -57,16 +57,12 @@ def search_asset_by_symbol(symbol: str, api_key: str = None) -> Optional[str]:
     Returns the asset ID or None if not found
     
     Args:
-        symbol: Cryptocurrency symbol (e.g., 'BTC', 'ETH', 'XRP/USDT')
+        symbol: Cryptocurrency symbol (e.g., 'BTC', 'ETH')
         api_key: CoinGecko API key (optional for basic tier)
     
     Returns:
         Asset ID string or None if not found
     """
-    # Extract base symbol from trading pairs (e.g., XRP/USDT -> XRP)
-    base_symbol = symbol.split('/')[0].upper()
-    print(f"   🔍 Recherche CoinGecko pour: {symbol} -> {base_symbol}")
-    
     url = "https://api.coingecko.com/api/v3/coins/list"
     headers = {}
     if api_key:
@@ -78,7 +74,7 @@ def search_asset_by_symbol(symbol: str, api_key: str = None) -> Optional[str]:
         
         coins = response.json()
         for coin in coins:
-            if coin.get("symbol", "").upper() == base_symbol:
+            if coin.get("symbol", "").upper() == symbol.upper():
                 return coin.get("id")
         
         return None
