@@ -1,0 +1,62 @@
+[
+  {
+    "created_at": "2025-09-19T10:30:00Z",
+    "id_str": "1234567890",
+    "full_text": "LINK is essential for oracles. Bullish on Chainlink; smart contracts need it. #LINK #Chainlink",
+    "analysis": {
+      "cryptos": [
+        {
+          "ticker": "LINK",
+          "sentiment": "bullish",
+          "context": "positive sentiment detected"
+        }
+      ],
+      "timestamp": "2025-09-19T10:30:00Z",
+      "tweet_id": "1234567890"
+    }
+  },
+  {
+    "created_at": "2025-09-19T15:45:00Z",
+    "id_str": "1234567891",
+    "full_text": "SOL is undervalued right now. Bearish short-term due to market dips, but bullish for the future. #Solana",
+    "analysis": {
+      "cryptos": [
+        {
+          "ticker": "SOL",
+          "sentiment": "bearish",
+          "context": "negative sentiment detected"
+        }
+      ],
+      "timestamp": "2025-09-19T15:45:00Z",
+      "tweet_id": "1234567891"
+    }
+  },
+  {
+    "consolidated_analysis": {
+      "account": "swissborg",
+      "total_tweets": 2,
+      "analysis_summary": {
+        "total_sentiments": 2,
+        "bullish_sentiments": 1,
+        "bearish_sentiments": 1,
+        "neutral_sentiments": 0
+      },
+      "tweets_analysis": [
+        {
+          "tweet_number": 1,
+          "timestamp": "2025-09-19T10:30:00Z",
+          "ticker": "LINK",
+          "sentiment": "bullish",
+          "context": "positive sentiment detected"
+        },
+        {
+          "tweet_number": 2,
+          "timestamp": "2025-09-19T15:45:00Z",
+          "ticker": "SOL",
+          "sentiment": "bearish",
+          "context": "negative sentiment detected"
+        }
+      ]
+    }
+  }
+]
