@@ -83,7 +83,7 @@ def run_and_print(
         return None
     
     # Format output for console display and get structured result
-    structured_result = _display_results(results, calculate_positions, simulate_positions, mock_positions, api_provider, validate_sentiment)
+    structured_result = _display_results(results, calculate_positions, simulate_positions, mock_positions, api_provider, validate_sentiment, model, system_msg)
     
     return structured_result
 
@@ -94,7 +94,9 @@ def _display_results(
     simulate_positions: bool,
     mock_positions: bool,
     api_provider: str = "coincap",
-    validate_sentiment: bool = False
+    validate_sentiment: bool = False,
+    model: str = "qwen3:14b",
+    system_msg: Optional[str] = None
 ) -> Optional[dict]:
     """Display results in formatted console output and return structured data."""
     print("\n" + "🐦" * 20 + " CONTENU DES TWEETS " + "🐦" * 20)
@@ -130,9 +132,11 @@ def _display_results(
             # Add validation results to consolidated data
             cons_data["sentiment_validation"] = validation_data
             
-            # Display the final structured result
-            print("\n" + "📋" * 20 + " RÉSULTAT STRUCTURÉ FINAL " + "📋" * 20)
-            print(json.dumps(cons_data, indent=2, ensure_ascii=False))
+            # Display final analysis summary
+            _display_final_analysis_summary(cons_data)
+        
+        # Final Ollama analysis of all collected data
+        _handle_final_ollama_analysis(cons_data, model, system_msg)
         
         print("\n" + "🏁" * 10 + " FIN DE L'ANALYSE " + "🏁" * 10)
         
@@ -317,6 +321,195 @@ def _handle_sentiment_validation(consolidated_data: dict, mock_mode: bool = Fals
             "error_message": str(e),
             "results": {}
         }
+
+
+def _display_final_analysis_summary(consolidated_data: dict) -> None:
+    """Display a comprehensive final analysis of influencer predictions and their validation."""
+    print("\n" + "🎯" * 20 + " ANALYSE FINALE DES PRÉDICTIONS " + "🎯" * 20)
+    
+    account = consolidated_data.get("account", "Compte inconnu")
+    total_tweets = consolidated_data.get("total_tweets", 0)
+    
+    print(f"👤 Influenceur analysé: {account}")
+    print(f"📊 Nombre de tweets analysés: {total_tweets}")
+    
+    # Analysis summary
+    analysis_summary = consolidated_data.get("analysis_summary", {})
+    print(f"\n📈 Résumé des sentiments détectés:")
+    print(f"   🟢 Bullish: {analysis_summary.get('bullish_sentiments', 0)}")
+    print(f"   🔴 Bearish: {analysis_summary.get('bearish_sentiments', 0)}")
+    print(f"   ⚪ Neutral: {analysis_summary.get('neutral_sentiments', 0)}")
+    
+    # Validation results
+    sentiment_validation = consolidated_data.get("sentiment_validation", {})
+    if sentiment_validation and sentiment_validation.get("validation_status") == "success":
+        print(f"\n🔍 Validation temporelle des prédictions:")
+        
+        summary = sentiment_validation.get("summary", {})
+        total_predictions = summary.get("total_predictions", 0)
+        
+        if total_predictions > 0:
+            print(f"   ⏰ Précision à 1h:  {summary.get('accuracy_1h_percent', 0):.1f}%")
+            print(f"   ⏰ Précision à 24h: {summary.get('accuracy_24h_percent', 0):.1f}%")
+            print(f"   ⏰ Précision à 7j:  {summary.get('accuracy_7d_percent', 0):.1f}%")
+            
+            # Detailed analysis for each prediction
+            validation_results = sentiment_validation.get("validation_results", [])
+            
+            print(f"\n🔬 Analyse détaillée par annonce:")
+            for i, result in enumerate(validation_results, 1):
+                ticker = result.get("ticker", "N/A")
+                sentiment = result.get("sentiment", "neutral")
+                context = result.get("context", "Aucun contexte")
+                timestamp = result.get("timestamp", "")
+                base_price = result.get("base_price", 0)
+                
+                # Format timestamp
+                formatted_time = ""
+                if timestamp:
+                    try:
+                        from datetime import datetime
+                        dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                        formatted_time = dt.strftime("%d/%m/%Y à %H:%M")
+                    except:
+                        formatted_time = timestamp[:16]
+                
+                print(f"\n   📝 Tweet #{i} - {ticker}")
+                print(f"      🕐 Date: {formatted_time}")
+                print(f"      💭 Sentiment prédit: {sentiment}")
+                print(f"      💡 Contexte: {context}")
+                print(f"      💰 Prix de base: ${base_price:.4f}")
+                
+                # Validation details
+                validations = result.get("validations", {})
+                for period in ["1h", "24h", "7d"]:
+                    if period in validations:
+                        validation = validations[period]
+                        if "error" not in validation:
+                            price_change = validation.get("price_change_pct", 0)
+                            actual_direction = validation.get("actual_direction", "unknown")
+                            correct = validation.get("correct", False)
+                            accuracy_score = validation.get("accuracy_score", 0)
+                            
+                            status_emoji = "✅" if correct else "❌"
+                            direction_emoji = {"bullish": "📈", "bearish": "📉", "neutral": "➡️"}.get(actual_direction, "❓")
+                            
+                            print(f"      {period:>3}: {status_emoji} {price_change:+.2f}% {direction_emoji} (Score: {accuracy_score:.0f}/100)")
+                        else:
+                            print(f"      {period:>3}: ⚠️ {validation.get('error', 'Erreur inconnue')}")
+            
+            # Overall performance assessment
+            avg_accuracy_24h = summary.get("accuracy_24h_percent", 0)
+            avg_score_24h = summary.get("avg_score_24h", 0)
+            
+            print(f"\n📊 Évaluation globale de l'influenceur:")
+            if avg_accuracy_24h >= 70:
+                performance = "🌟 Excellente"
+            elif avg_accuracy_24h >= 50:
+                performance = "👍 Bonne"
+            elif avg_accuracy_24h >= 30:
+                performance = "⚠️ Moyenne"
+            else:
+                performance = "👎 Faible"
+            
+            print(f"   🎯 Performance globale (24h): {performance} ({avg_accuracy_24h:.1f}%)")
+            print(f"   📈 Score moyen de précision: {avg_score_24h:.1f}/100")
+            
+            # Recommendations
+            print(f"\n💡 Recommandations:")
+            if avg_accuracy_24h >= 60:
+                print(f"   ✨ Cet influenceur montre de bonnes capacités prédictives")
+                print(f"   ✨ Ses analyses peuvent être considérées comme fiables")
+            elif avg_accuracy_24h >= 40:
+                print(f"   ⚖️ Performance modérée, à utiliser avec prudence")
+                print(f"   ⚖️ Croiser avec d'autres sources d'analyse")
+            else:
+                print(f"   ⚠️ Faible performance prédictive observée")
+                print(f"   ⚠️ Recommandé d'être très prudent avec ces signaux")
+        
+        else:
+            print("   ❌ Aucune prédiction à valider")
+    
+    else:
+        print(f"\n❌ Validation des sentiments non disponible ou échouée")
+    
+    print("\n" + "🎯" * 60)
+    
+    # Don't display the dictionary again here - it will be shown after Ollama analysis
+
+
+def _handle_final_ollama_analysis(consolidated_data: dict, model: str = "qwen3:14b", system_msg: Optional[str] = None) -> None:
+    """Send the complete analysis to Ollama for final interpretation and insights."""
+    print("\n" + "🤖" * 20 + " ANALYSE FINALE PAR OLLAMA " + "🤖" * 20)
+    
+    try:
+        # Import Ollama functions
+        try:
+            from .models_logic.ollama_logic import generate_with_ollama
+        except ImportError:
+            from models_logic.ollama_logic import generate_with_ollama
+        
+        # Create analysis prompt
+        analysis_prompt = f"""
+{system_msg or 'Tu es un expert analyste crypto spécialisé dans l\'évaluation des prédictions d\'influenceurs.'}
+
+Tu es un expert analyste crypto qui doit fournir une analyse finale basée sur toutes les données collectées.
+
+DONNÉES D'ANALYSE COMPLÈTES:
+{json.dumps(consolidated_data, indent=2, ensure_ascii=False)}
+
+INSTRUCTIONS:
+Analyse ces données complètes et fournis une réponse structurée avec:
+
+1. 📊 RÉSUMÉ EXÉCUTIF
+- Qui est cet influenceur et que dit-il ?
+- Quelles sont ses principales prédictions crypto ?
+
+2. 🎯 ÉVALUATION DE PERFORMANCE  
+- Sa précision sur 1h, 24h, 7 jours
+- Est-il fiable ou non ? Pourquoi ?
+
+3. 💡 RECOMMANDATIONS CONCRÈTES
+- Faut-il suivre ses signaux ?
+- Quels sont les risques et opportunités ?
+- Conseils pour les investisseurs
+
+4. 🔮 INSIGHTS SPÉCIFIQUES 
+- Analyse détaillée de chaque prédiction
+- Patterns observés dans ses annonces
+- Points d'attention particuliers
+
+Réponds en français, sois précis et actionnable. Utilise des emojis pour structurer ta réponse.
+        """
+        
+        print("🧠 Génération de l'analyse finale par Ollama...")
+        print("📊 Traitement des données collectées...")
+        
+        # Get final analysis from Ollama
+        final_analysis = generate_with_ollama(
+            model=model,
+            prompt=analysis_prompt
+        )
+        
+        print("\n" + "💬" * 60)
+        print("🤖 ANALYSE FINALE D'OLLAMA:")
+        print("💬" * 60)
+        print(final_analysis)
+        print("💬" * 60)
+        
+        # Display the complete dictionary after Ollama analysis
+        print("\n" + "📄" * 15 + " DICTIONNAIRE FINAL COMPLET " + "📄" * 15)
+        print("🔧 Données complètes utilisées pour l'analyse:")
+        print(json.dumps(consolidated_data, indent=2, ensure_ascii=False))
+        
+    except Exception as e:
+        print(f"⚠️ Erreur lors de l'analyse finale par Ollama: {e}")
+        print("🔄 Affichage du dictionnaire sans analyse Ollama:")
+        
+        # Fallback: just display the dictionary
+        print("\n" + "📄" * 15 + " DICTIONNAIRE FINAL COMPLET " + "📄" * 15)
+        print("🔧 Dictionnaire structuré pour utilisation programmatique:")
+        print(json.dumps(consolidated_data, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
