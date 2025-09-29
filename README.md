@@ -53,6 +53,9 @@ Create a `.env` file with the following variables:
 # Required for real Twitter data (optional in mock mode)
 TWITSCOUT_API_KEY=your_twitscout_api_key
 
+# Required for sentiment validation (optional in mock mode)
+COINGECKO_API_KEY=your_coingecko_api_key
+
 # Required for position simulation (optional in mock mode)
 COINCAP_API_KEY=your_coincap_api_key
 
@@ -67,6 +70,9 @@ OLLAMA_HOST=http://localhost:11434
 ```bash
 # Analyze tweets with AI (mock mode)
 python scraper.py @trader --limit 5 --mock-scraping --mock-positions
+
+# Analyze and validate sentiment predictions over time
+python scraper.py @influencer --limit 3 --mock-scraping --validate-sentiment --api coingecko
 
 # Analyze and simulate trading positions
 python scraper.py @trader --limit 3 --mock --simulate --sim-hours 2
@@ -87,12 +93,67 @@ python scraper.py @trader --limit 5 --simulate
 | `--mock` | Enable both mock modes | `False` |
 | `--simulate` | Simulate trading positions | `False` |
 | `--sim-hours` | Hours to simulate | `24` |
+| `--validate-sentiment` | Validate sentiment predictions over time | `False` |
+| `--api` | Cryptocurrency API (coincap/coingecko) | `coincap` |
 | `--json` | Output in JSON format | `False` |
 | `--no-tools` | Disable AI tools (legacy mode) | `False` |
 
 ## 📊 Examples
 
-### Example 1: Mock Analysis
+### Example 1: Sentiment Validation Analysis
+```bash
+python scraper.py @crypto_influencer --limit 3 --mock-scraping --validate-sentiment --api coingecko
+```
+
+**Output:**
+```
+🐦 CONTENU DES TWEETS 
+📝 TWEET #1: TRX is cheap and fast. Bullish on Tron...
+
+📊 ANALYSE CONSOLIDÉE 
+{
+  "account": "@crypto_influencer",
+  "total_tweets": 3,
+  "analysis_summary": {
+    "total_sentiments": 3,
+    "bullish_sentiments": 2,
+    "bearish_sentiments": 1,
+    "neutral_sentiments": 0
+  },
+  "tweets_analysis": [...]
+}
+
+⏰ VALIDATION TEMPORELLE 
+🎯 Validation des sentiments d'influenceur...
+🔍 Validation sentiment pour TRX (bullish)
+    1h: ✅ +2.34% (Prédit: bullish, Réel: bullish)
+   24h: ❌ -1.78% (Prédit: bullish, Réel: neutral)
+    7d: ✅ +5.21% (Prédit: bullish, Réel: bullish)
+
+🎯 ANALYSE FINALE DES PRÉDICTIONS 
+👤 Influenceur analysé: @crypto_influencer
+📊 Évaluation globale (24h): 👍 Bonne (66.7%)
+📈 Score moyen de précision: 73.5/100
+
+💡 Recommandations:
+   ✨ Cet influenceur montre de bonnes capacités prédictives
+   ✨ Ses analyses peuvent être considérées comme fiables
+
+📄 DICTIONNAIRE FINAL COMPLET 
+🔧 Dictionnaire structuré pour utilisation programmatique:
+{
+  "account": "@crypto_influencer",
+  "sentiment_validation": {
+    "validation_status": "success",
+    "summary": {
+      "accuracy_24h_percent": 66.7,
+      "avg_score_24h": 73.5
+    }
+  }
+}
+```
+
+### Example 2: Mock Trading Analysis
 ```bash
 python scraper.py @crypto_trader --limit 3 --mock --simulate --sim-hours 1
 ```
@@ -124,6 +185,26 @@ python scraper.py @crypto_trader --limit 3 --mock --simulate --sim-hours 1
 ```bash
 python scraper.py @actual_trader --limit 5 --simulate --sim-hours 6
 ```
+
+## 🎯 New Features
+
+### 🔍 Sentiment Validation
+Validate influencer predictions over time with temporal analysis:
+
+```bash
+# Validate sentiment predictions with CoinGecko API
+python scraper.py @influencer --validate-sentiment --api coingecko --mock-scraping
+
+# Real-time validation (requires COINGECKO_API_KEY)
+python scraper.py @real_influencer --validate-sentiment --api coingecko --limit 10
+```
+
+**Features:**
+- ⏰ **Multi-timeframe validation**: 1h, 24h, 7d accuracy tracking
+- 📊 **Performance scoring**: Detailed accuracy metrics per prediction
+- 🎯 **Influencer assessment**: Global performance evaluation with recommendations
+- 📄 **Structured output**: Complete JSON dictionary with validation results
+- 🔬 **Detailed analysis**: Per-tweet breakdown with price movements and accuracy scores
 
 ## 🏗️ Architecture
 
