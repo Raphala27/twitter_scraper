@@ -451,35 +451,23 @@ def _handle_final_ollama_analysis(consolidated_data: dict, model: str = "qwen3:1
         
         # Create analysis prompt
         analysis_prompt = f"""
-{system_msg or 'Tu es un expert analyste crypto spécialisé dans l\'évaluation des prédictions d\'influenceurs.'}
+{system_msg or 'Tu es un expert analyste crypto avec un sens de l\'humour qui s\'adresse à la communauté crypto.'}
 
-Tu es un expert analyste crypto qui doit fournir une analyse finale basée sur toutes les données collectées.
+Tu es un analyste crypto qui parle à des crypto-bros. Sois concis, direct et un peu sarcastique.
 
-DONNÉES D'ANALYSE COMPLÈTES:
+DONNÉES D'ANALYSE:
 {json.dumps(consolidated_data, indent=2, ensure_ascii=False)}
 
 INSTRUCTIONS:
-Analyse ces données complètes et fournis une réponse structurée avec:
+Analyse ces données et donne un compte-rendu COURT (max 200 mots) avec:
 
-1. 📊 RÉSUMÉ EXÉCUTIF
-- Qui est cet influenceur et que dit-il ?
-- Quelles sont ses principales prédictions crypto ?
+� **LE DEAL**: Qui c'est et qu'est-ce qu'il predict
+🎯 **SES SKILLS**: Il a visé juste ou il s'est planté ? (précision %)  
+� **VERDICT FINAL**: DYOR ou "trust me bro" ?
 
-2. 🎯 ÉVALUATION DE PERFORMANCE  
-- Sa précision sur 1h, 24h, 7 jours
-- Est-il fiable ou non ? Pourquoi ?
-
-3. 💡 RECOMMANDATIONS CONCRÈTES
-- Faut-il suivre ses signaux ?
-- Quels sont les risques et opportunités ?
-- Conseils pour les investisseurs
-
-4. 🔮 INSIGHTS SPÉCIFIQUES 
-- Analyse détaillée de chaque prédiction
-- Patterns observés dans ses annonces
-- Points d'attention particuliers
-
-Réponds en français, sois précis et actionnable. Utilise des emojis pour structurer ta réponse.
+Style: Ton de la crypto Twitter, un peu moqueur mais informatif. 
+Utilise le jargon crypto (moon, dump, ape, diamond hands, etc.).
+Reste factuel mais amusant. Pas plus de 3-4 phrases par section.
         """
         
         print("🧠 Génération de l'analyse finale par Ollama...")
