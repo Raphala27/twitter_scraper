@@ -101,7 +101,7 @@ sentiments = [
 results = validator.validate_all_sentiments(sentiments)
 ```
 
-### Intégration avec l'analyse Ollama
+### Intégration avec l'analyse OpenRouter
 
 ```bash
 # Analyse complète avec validation
@@ -119,8 +119,8 @@ python3 scraper.py @cryptoinfluencer --validate-sentiment --api coingecko
 # Pour l'API CoinGecko (prix réels)
 COINGECKO_API_KEY=your_api_key_here
 
-# Pour l'analyse Ollama
-OLLAMA_HOST=http://localhost:11434
+# Pour l'analyse OpenRouter
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 ```
 
 ### Mode Mock vs API Réelle
