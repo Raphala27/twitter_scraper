@@ -127,165 +127,21 @@ class UtilsScraper:
                     seed_input = f"{user_id}:{next_cursor or '0'}"
                     seed = int(hashlib.md5(seed_input.encode("utf-8")).hexdigest()[:12], 16)
                     rnd = random.Random(seed)
-                    # Base de date déterministe
-                    base_shift_days = int(hashlib.md5(user_id.encode("utf-8")).hexdigest()[:6], 16) % 365
-                    base_dt = datetime(2025, 1, 1) - timedelta(days=base_shift_days)
-
+                    # Base de date déterministe mais récente (début septembre 2025)
+                    # Utiliser les 3-5 septembre 2025 pour avoir plus de recul temporel
+                    base_shift_days = int(hashlib.md5(user_id.encode("utf-8")).hexdigest()[:6], 16) % 3  # 0-2 jours
+                    base_dt = datetime(2025, 9, 5) - timedelta(days=base_shift_days)  # 3, 4 ou 5 septembre 2025
                     templates = [
-                        """[MOCK] #BTC/USDT
-Signal type: SHORT
-Leverage: 25x
-Entry : 64200
-Take Profit Targets:
-➖ 63000
-➖ 62000
-➖ 61000
-➖ 60000
-➖ 59000
-⚠️SL: 66000""",
-
-                        """#ETH/USDT LONG
-👉Leverage : Cross 25×
-Entry : 3150 - 3100
-Take Profit
-1) 3250
-2) 3350
-3) 3450
-⭕Stoploss : 3000""",
-
-                        """[MOCK] #SOL/USDT
-Signal type: LONG
-Leverage: 20x
-Entry : 185.50
-Take Profit Targets:
-➖ 190.00
-➖ 195.00
-➖ 200.00
-➖ 205.00
-➖ 210.00
-⚠️SL: 180.00""",
-
-                        """[MOCK] #ADA/USDT
-Signal type: SHORT
-Leverage: 15x
-Entry : 0.4850
-Take Profit Targets:
-➖ 0.4750
-➖ 0.4650
-➖ 0.4550
-➖ 0.4450
-➖ 0.4350
-⚠️SL: 0.5000""",
-
-                        """[MOCK] #XRP/USDT LONG
-Signal type: LONG
-Leverage: 10x
-Entry : 0.5250
-Take Profit Targets:
-➖ 0.5400
-➖ 0.5550
-➖ 0.5700
-➖ 0.5850
-⚠️SL: 0.5000""",
-
-                        """[MOCK] #BNB/USDT SHORT
-Signal type: SHORT
-Leverage: 8x
-Entry : 590.00
-Take Profit Targets:
-➖ 580.00
-➖ 570.00
-➖ 560.00
-➖ 550.00
-⚠️SL: 610.00""",
-
-                        """[MOCK] #DOGE/USDT LONG
-Signal type: LONG
-Leverage: 12x
-Entry : 0.1500
-Take Profit Targets:
-➖ 0.1550
-➖ 0.1600
-➖ 0.1650
-➖ 0.1700
-⚠️SL: 0.1400""",
-
-                        """[MOCK] #MATIC/USDT SHORT
-Signal type: SHORT
-Leverage: 20x
-Entry : 0.7000
-Take Profit Targets:
-➖ 0.6900
-➖ 0.6800
-➖ 0.6700
-➖ 0.6600
-⚠️SL: 0.7200""",
-
-                        """[MOCK] #AVAX/USDT LONG
-Signal type: LONG
-Leverage: 18x
-Entry : 32.00
-Take Profit Targets:
-➖ 33.00
-➖ 34.00
-➖ 35.00
-➖ 36.00
-⚠️SL: 30.00""",
-
-                        """[MOCK] #DOT/USDT SHORT
-Signal type: SHORT
-Leverage: 14x
-Entry : 6.50
-Take Profit Targets:
-➖ 6.40
-➖ 6.30
-➖ 6.20
-➖ 6.10
-⚠️SL: 6.70""",
-
-                        """[MOCK] #LTC/USDT LONG
-Signal type: LONG
-Leverage: 16x
-Entry : 85.00
-Take Profit Targets:
-➖ 87.00
-➖ 89.00
-➖ 91.00
-➖ 93.00
-⚠️SL: 82.00""",
-
-                        """[MOCK] #TRX/USDT SHORT
-Signal type: SHORT
-Leverage: 10x
-Entry : 0.1200
-Take Profit Targets:
-➖ 0.1180
-➖ 0.1160
-➖ 0.1140
-➖ 0.1120
-⚠️SL: 0.1240""",
-
-                        """[MOCK] #LINK/USDT LONG
-Signal type: LONG
-Leverage: 22x
-Entry : 14.00
-Take Profit Targets:
-➖ 14.50
-➖ 15.00
-➖ 15.50
-➖ 16.00
-⚠️SL: 13.50""",
-
-                        """[MOCK] #UNI/USDT SHORT
-Signal type: SHORT
-Leverage: 9x
-Entry : 7.00
-Take Profit Targets:
-➖ 6.90
-➖ 6.80
-➖ 6.70
-➖ 6.60
-⚠️SL: 7.20""",
+                        "Just my take on #BTC: It's been volatile, but I'm bullish long-term. Could see 100k by year-end if the market stabilizes. What do you think? #Crypto",
+                        "ETH is looking strong with all the upgrades. Bullish on Ethereum – might hit 4k soon. DYOR though! #ETH #Ethereum",
+                        "SOL is undervalued right now. Bearish short-term due to market dips, but bullish for the future. Holding strong. #Solana",
+                        "ADA has potential, but I'm bearish on Cardano for the next quarter. Too much competition. #ADA #Cardano",
+                        "XRP is a sleeper. Bullish on Ripple – regulatory wins could pump it to 1$. Patience is key. #XRP",
+                        "BNB is overbought. Bearish on Binance Coin; might correct to 500 before climbing. #BNB #Binance",
+                        "DOGE is fun, but bearish overall. Not sustainable long-term without real utility. #Dogecoin",
+                        "TRX is cheap and fast. Bullish on Tron – lots of adoption potential. #TRX #Tron",
+                        "LINK is essential for oracles. Bullish on Chainlink; smart contracts need it. #LINK #Chainlink",
+                        "UNI is solid. Bearish short-term due to market sentiment, but bullish long-term. #UNI #Uniswap",
                     ]
                     batch = []
                     for i in range(gen_n):
@@ -296,8 +152,8 @@ Take Profit Targets:
                         # Texte stable: choix de template déterministe
                         t_idx = int(hashlib.md5(f"template:{user_id}:{idx}".encode("utf-8")).hexdigest()[:6], 16) % len(templates)
                         text = templates[t_idx].format(idx=idx, user_id=user_id)
-                        # Date stable: quelques minutes d'écart par idx
-                        created_at = (base_dt - timedelta(minutes=idx * (5 + rnd.randint(0, 3)))).isoformat() + "Z"
+                        # Date stable: quelques heures d'écart par idx (pour rester récent)
+                        created_at = (base_dt - timedelta(hours=idx * (1 + rnd.randint(0, 2)))).isoformat() + "Z"
                         batch.append({
                             "id_str": tid,
                             "created_at": created_at,

@@ -215,7 +215,7 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
         if use_tools:
             prompt_parts.append("\nAnalyze this post and extract any cryptocurrency tickers mentioned. Use the extract_crypto_tickers tool if you find any crypto-related content.")
         else:
-            prompt_parts.append("\nAnalyze this post and extract cryptocurrency information. Return ONLY a Python list with this exact format: [{'ticker': 'BTC', 'sentiment': 'long', 'leverage': '10', 'take_profits': [50000, 52000, 55000], 'stop_loss': 45000, 'entry_price': 48000}]. \n\nIMPORTANT: For ticker field, extract ONLY the base cryptocurrency symbol (e.g., 'XRP' not 'XRP/USDT', 'BTC' not 'BTC/USD', 'ETH' not 'ETH/USDT'). Remove any trading pairs or suffixes.\n\nSentiment must be 'long', 'short', or 'neutral'. Leverage should be extracted as a number only (like '2', '10', '50') or 'none' if not specified. Extract all Take Profit targets as a list of numbers, Stop Loss as a single number, and Entry price as a single number. If any price is not found, use null. If no crypto found, return []. Do not add explanations, just the list.")
+            prompt_parts.append("\nAnalyze this post and extract cryptocurrency sentiment analysis. Return ONLY a Python list with this exact format: [{'ticker': 'BTC', 'sentiment': 'bullish', 'context': 'mentions adoption and price target'}]. \n\nIMPORTANT: \n- For 'ticker' field: extract ONLY the base cryptocurrency symbol (e.g., 'BTC' not 'BTC/USD', 'ETH' not 'ETH/USDT')\n- For 'sentiment': use 'bullish' (positive/optimistic), 'bearish' (negative/pessimistic), or 'neutral' (no clear direction)\n- For 'context': brief description of why this sentiment was detected (max 10 words)\n\nExtract sentiment for ALL cryptocurrencies mentioned in the post. If no crypto sentiment is detected, return []. Do not add explanations, just the list.")
 
         prompt = "\n\n".join(prompt_parts)
 
@@ -268,19 +268,11 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
                                         if isinstance(item, dict):
                                             ticker = item.get('ticker', 'N/A')
                                             sentiment = item.get('sentiment', 'neutral')
-                                            leverage = item.get('leverage', 'none')
-                                            take_profits = item.get('take_profits', [])
-                                            stop_loss = item.get('stop_loss')
-                                            entry_price = item.get('entry_price')
+                                            context = item.get('context', '')
                                             
-                                            print(f"   📊 {ticker}: {sentiment} (levier: {leverage})")
-                                            if entry_price:
-                                                print(f"      🎯 Entry: {entry_price}")
-                                            if take_profits:
-                                                tp_str = ", ".join([str(tp) for tp in take_profits])
-                                                print(f"      📈 Take Profits: [{tp_str}]")
-                                            if stop_loss:
-                                                print(f"      ⛔ Stop Loss: {stop_loss}")
+                                            print(f"   📊 {ticker}: {sentiment}")
+                                            if context:
+                                                print(f"      💬 Context: {context}")
                                         else:
                                             print(f"   📊 {item}")
                                 else:
@@ -334,9 +326,10 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
         "account": user_or_handle,
         "total_tweets": len(results),
         "analysis_summary": {
-            "total_positions": 0,
-            "long_positions": 0,
-            "short_positions": 0
+            "total_sentiments": 0,
+            "bullish_sentiments": 0,
+            "bearish_sentiments": 0,
+            "neutral_sentiments": 0
         },
         "tweets_analysis": []
     }
@@ -349,30 +342,27 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
             for crypto in cryptos:
                 if isinstance(crypto, dict):
                     sentiment = crypto.get("sentiment", "neutral")
-                    if sentiment in ["long", "short"]:  # Exclure "neutral"
+                    # Accepter tous les sentiments : bullish, bearish, neutral
+                    if sentiment in ["bullish", "bearish", "neutral"]:
                         ticker = crypto.get("ticker", "")
-                        leverage = crypto.get("leverage", "none")
-                        take_profits = crypto.get("take_profits", [])
-                        stop_loss = crypto.get("stop_loss")
-                        entry_price = crypto.get("entry_price")
+                        context = crypto.get("context", "")
                         
                         crypto_entry = {
                             "tweet_number": i,
                             "timestamp": result.get("created_at", ""),
                             "ticker": ticker,
                             "sentiment": sentiment,
-                            "leverage": leverage,
-                            "take_profits": take_profits if take_profits else [],
-                            "stop_loss": stop_loss,
-                            "entry_price": entry_price
+                            "context": context
                         }
                         consolidated_analysis["tweets_analysis"].append(crypto_entry)
                         
-                        consolidated_analysis["analysis_summary"]["total_positions"] += 1
-                        if sentiment == "long":
-                            consolidated_analysis["analysis_summary"]["long_positions"] += 1
-                        elif sentiment == "short":
-                            consolidated_analysis["analysis_summary"]["short_positions"] += 1
+                        consolidated_analysis["analysis_summary"]["total_sentiments"] += 1
+                        if sentiment == "bullish":
+                            consolidated_analysis["analysis_summary"]["bullish_sentiments"] += 1
+                        elif sentiment == "bearish":
+                            consolidated_analysis["analysis_summary"]["bearish_sentiments"] += 1
+                        elif sentiment == "neutral":
+                            consolidated_analysis["analysis_summary"]["neutral_sentiments"] += 1
     
     # Ajouter le dictionnaire consolidé au dernier résultat
     if results:
