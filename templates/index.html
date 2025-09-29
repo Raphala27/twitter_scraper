@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Scraper AI - Analyse de Sentiment Crypto</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                <i class="fab fa-twitter text-blue-500"></i>
+                Twitter Scraper AI
+            </h1>
+            <p class="text-gray-600">Analyse de sentiment crypto avec validation IA</p>
+        </div>
+
+        <!-- Main Form -->
+        <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6 mb-8">
+            <form id="analyzeForm" class="space-y-6">
+                <div>
+                    <label for="user" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fab fa-twitter"></i> Utilisateur Twitter
+                    </label>
+                    <input type="text" id="user" name="user" value="@trader" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="@username ou user_id">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="limit" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-list-ol"></i> Nombre de tweets
+                        </label>
+                        <input type="number" id="limit" name="limit" value="3" min="1" max="10"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div>
+                        <label for="model" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-robot"></i> Modèle IA
+                        </label>
+                        <select id="model" name="model" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="mistralai/mistral-small-3.2-24b-instruct:free">Mistral Small (Free)</option>
+                            <option value="microsoft/wizardlm-2-8x22b">WizardLM 2</option>
+                            <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-cog"></i> Options
+                    </label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="simulate_positions" name="simulate_positions" class="mr-2">
+                            <span class="text-sm text-gray-700">Simuler les positions de trading</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="validate_sentiment" name="validate_sentiment" class="mr-2">
+                            <span class="text-sm text-gray-700">Valider les sentiments dans le temps</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="mock_mode" name="mock_mode" checked class="mr-2">
+                            <span class="text-sm text-gray-700">Mode démo (sans clés API)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" id="analyzeBtn" 
+                        class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
+                    <i class="fas fa-chart-line mr-2"></i>
+                    Analyser les tweets
+                </button>
+            </form>
+        </div>
+
+        <!-- Quick Test Section -->
+        <div class="max-w-2xl mx-auto bg-green-50 rounded-lg border border-green-200 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-green-800 mb-3">
+                <i class="fas fa-play-circle"></i> Test rapide
+            </h3>
+            <p class="text-green-700 mb-4">Testez l'API avec des paramètres par défaut (mode démo)</p>
+            <button id="quickTestBtn" 
+                    class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition duration-200">
+                <i class="fas fa-bolt mr-2"></i>
+                Test rapide
+            </button>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="max-w-4xl mx-auto hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-chart-bar"></i> Résultats d'analyse
+                </h2>
+                <div id="resultsContent" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg p-6 text-center">
+                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-700">Analyse en cours...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('analyzeForm');
+            const quickTestBtn = document.getElementById('quickTestBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+
+            // Main form submission
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(form);
+                const data = {
+                    user: formData.get('user'),
+                    limit: parseInt(formData.get('limit')),
+                    model: formData.get('model'),
+                    mock_scraping: formData.get('mock_mode') === 'on',
+                    mock_positions: formData.get('mock_mode') === 'on',
+                    simulate_positions: formData.get('simulate_positions') === 'on',
+                    validate_sentiment: formData.get('validate_sentiment') === 'on'
+                };
+
+                analyzeData(data);
+            });
+
+            // Quick test button
+            quickTestBtn.addEventListener('click', function() {
+                const data = {
+                    user: '@trader',
+                    limit: 2,
+                    model: 'mistralai/mistral-small-3.2-24b-instruct:free',
+                    mock_scraping: true,
+                    mock_positions: true,
+                    simulate_positions: false,
+                    validate_sentiment: false
+                };
+
+                analyzeData(data);
+            });
+
+            function analyzeData(data) {
+                loading.classList.remove('hidden');
+                results.classList.add('hidden');
+
+                fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    loading.classList.add('hidden');
+                    
+                    if (result.status === 'success') {
+                        displayResults(result.data);
+                        results.classList.remove('hidden');
+                        results.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        displayError(result.message);
+                    }
+                })
+                .catch(error => {
+                    loading.classList.add('hidden');
+                    displayError('Erreur de connexion: ' + error.message);
+                });
+            }
+
+            function displayResults(data) {
+                if (!data) {
+                    displayError('Aucune donnée reçue');
+                    return;
+                }
+
+                let html = '<div class="space-y-6">';
+                
+                // Account info
+                if (data.account) {
+                    html += `
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h3 class="font-semibold text-blue-800">
+                                <i class="fab fa-twitter"></i> Compte analysé: ${data.account}
+                            </h3>
+                            <p class="text-blue-700">Tweets analysés: ${data.total_tweets || 'N/A'}</p>
+                        </div>
+                    `;
+                }
+
+                // Analysis summary
+                if (data.analysis_summary) {
+                    const summary = data.analysis_summary;
+                    html += `
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-semibold text-gray-800 mb-2">
+                                <i class="fas fa-chart-pie"></i> Résumé de l'analyse
+                            </h3>
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div class="bg-green-100 p-3 rounded">
+                                    <div class="text-2xl font-bold text-green-600">${summary.bullish_sentiments || 0}</div>
+                                    <div class="text-sm text-green-700">Bullish</div>
+                                </div>
+                                <div class="bg-red-100 p-3 rounded">
+                                    <div class="text-2xl font-bold text-red-600">${summary.bearish_sentiments || 0}</div>
+                                    <div class="text-sm text-red-700">Bearish</div>
+                                </div>
+                                <div class="bg-gray-100 p-3 rounded">
+                                    <div class="text-2xl font-bold text-gray-600">${summary.neutral_sentiments || 0}</div>
+                                    <div class="text-sm text-gray-700">Neutral</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Sentiment validation results
+                if (data.sentiment_validation && data.sentiment_validation.validation_status === 'success') {
+                    const validation = data.sentiment_validation.summary;
+                    html += `
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <h3 class="font-semibold text-yellow-800 mb-2">
+                                <i class="fas fa-clock"></i> Validation temporelle
+                            </h3>
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <div class="text-lg font-bold">${validation.accuracy_1h_percent?.toFixed(1) || 0}%</div>
+                                    <div class="text-sm text-gray-600">Précision 1h</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold">${validation.accuracy_24h_percent?.toFixed(1) || 0}%</div>
+                                    <div class="text-sm text-gray-600">Précision 24h</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold">${validation.accuracy_7d_percent?.toFixed(1) || 0}%</div>
+                                    <div class="text-sm text-gray-600">Précision 7j</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Raw JSON data (collapsible)
+                html += `
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <button class="w-full text-left font-semibold text-gray-800 mb-2" onclick="toggleJson()">
+                            <i class="fas fa-code"></i> Données JSON complètes 
+                            <i id="jsonToggle" class="fas fa-chevron-down float-right"></i>
+                        </button>
+                        <div id="jsonData" class="hidden">
+                            <pre class="bg-gray-800 text-green-400 p-4 rounded text-sm overflow-x-auto">${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+
+                html += '</div>';
+                resultsContent.innerHTML = html;
+            }
+
+            function displayError(message) {
+                resultsContent.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 p-4 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                            <span class="text-red-700">${message}</span>
+                        </div>
+                    </div>
+                `;
+                results.classList.remove('hidden');
+            }
+
+            // Global function for JSON toggle
+            window.toggleJson = function() {
+                const jsonData = document.getElementById('jsonData');
+                const toggle = document.getElementById('jsonToggle');
+                
+                if (jsonData.classList.contains('hidden')) {
+                    jsonData.classList.remove('hidden');
+                    toggle.classList.remove('fa-chevron-down');
+                    toggle.classList.add('fa-chevron-up');
+                } else {
+                    jsonData.classList.add('hidden');
+                    toggle.classList.remove('fa-chevron-up');
+                    toggle.classList.add('fa-chevron-down');
+                }
+            };
+        });
+    </script>
+</body>
+</html>
