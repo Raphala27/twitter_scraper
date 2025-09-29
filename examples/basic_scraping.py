@@ -2,7 +2,7 @@
 """
 Basic scraping example - analyze tweets without position simulation.
 """
-from twitter_scraper.models_logic import process_tweets_with_ollama
+from twitter_scraper.models_logic import process_tweets_with_openrouter
 
 import sys
 import os
@@ -20,10 +20,10 @@ def basic_analysis_example():
     print("=" * 50)
     
     # Analyze tweets from a crypto trader account
-    results = process_tweets_with_ollama(
+    results = process_tweets_with_openrouter(
         user_or_handle="@trader",
         limit=3,
-        model="qwen3:14b",
+        model="mistralai/mistral-small-3.2-24b-instruct:free",
         system_instruction="Extract cryptocurrency trading signals from tweets.",
         mock=True,  # Use mock data for this example
         use_tools=True

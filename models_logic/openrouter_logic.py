@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Ollama Integration Logic
+OpenRouter Integration Logic
 
-This module handles integration with Ollama for AI-powered tweet analysis,
-including model management, prompt generation, and tool usage for cryptocurrency
-ticker extraction and sentiment analysis.
+This module handles integration with OpenRouter.ai for AI-powered tweet analysis,
+providing cloud-based AI models for better scalability and deployment compatibility.
 """
 
 # Standard library imports
@@ -12,7 +11,6 @@ import ast
 import json
 import os
 import re
-import subprocess
 import sys
 from typing import Any, Dict, List
 
@@ -32,57 +30,71 @@ except ImportError:
     from utils_scraper import UtilsScraper as us
 
 
-def ensure_model_present(model: str) -> None:
-    """
-    Ensure the specified Ollama model is available locally.
-    
-    Args:
-        model: Name of the Ollama model to check/pull
-    """
-    try:
-        # Check if model exists with 'ollama show'
-        show = subprocess.run(["ollama", "show", model], capture_output=True, timeout=30, check=False)
-        if show.returncode != 0:
-            print(f"Model '{model}' not found locally. Pulling...")
-            pull = subprocess.run(["ollama", "pull", model], check=False, timeout=300)
-            if pull.returncode != 0:
-                print(f"Warning: Unable to pull model '{model}'. "
-                      "Ensure Ollama is running and the model name is correct.")
-    except FileNotFoundError:
-        print("Warning: 'ollama' CLI not found. "
-              "Assuming Ollama API is reachable at http://localhost:11434.")
-    except subprocess.TimeoutExpired:
-        print(f"Warning: Timeout while checking/pulling model '{model}'.")
-
-
-def generate_with_ollama(
+def generate_with_openrouter(
     model: str, 
     prompt: str, 
-    url: str = "http://localhost:11434/api/generate"
+    api_key: str = None,
+    site_url: str = "https://crypto-scraper.com",
+    site_name: str = "Crypto Tweet Analyzer"
 ) -> str:
     """
-    Call Ollama generate API with a prompt and return the response.
+    Call OpenRouter API with a prompt and return the response.
     
     Args:
-        model: Ollama model name
+        model: OpenRouter model name (e.g., "mistralai/mistral-small-3.2-24b-instruct:free")
         prompt: Text prompt to send to the model
-        url: Ollama API endpoint URL
+        api_key: OpenRouter API key (if not provided, will get from env)
+        site_url: Optional site URL for rankings
+        site_name: Optional site name for rankings
     
     Returns:
         Generated response text from the model
     """
-    payload = {
-        "model": model, 
-        "prompt": prompt, 
-        "stream": False, 
-        "think": False
-    }
-    headers = {"Content-Type": "application/json"}
+    if api_key is None:
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY environment variable is required")
     
-    resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=120)
-    resp.raise_for_status()
-    data = resp.json()
-    return data.get("response", "")
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": site_url,
+        "X-Title": site_name,
+    }
+    
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    }
+    
+    try:
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            data=json.dumps(payload),
+            timeout=120
+        )
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        # Extract the response content
+        if "choices" in data and len(data["choices"]) > 0:
+            message = data["choices"][0].get("message", {})
+            content = message.get("content", "")
+            return content
+        else:
+            return ""
+            
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"OpenRouter API request failed: {e}")
+    except json.JSONDecodeError as e:
+        raise Exception(f"Failed to decode OpenRouter response: {e}")
 
 
 def get_available_tools() -> List[Dict[str, Any]]:
@@ -132,60 +144,67 @@ def execute_tool(tool_name: str, parameters: Dict[str, Any]) -> str:
         return f"Unknown tool: {tool_name}"
 
 
-def generate_with_ollama_tools(model: str, prompt: str, tools: List[Dict[str, Any]] = None, url: str = "http://localhost:11434/api/generate") -> str:
-    """Call Ollama generate API with tools support and handle tool calls."""
+def generate_with_openrouter_tools(
+    model: str, 
+    prompt: str, 
+    tools: List[Dict[str, Any]] = None,
+    api_key: str = None
+) -> str:
+    """
+    Call OpenRouter API with tools support (simulated with prompt engineering).
+    
+    Note: OpenRouter uses prompt engineering for tool-like functionality,
+    providing flexibility for various analysis tasks.
+    """
     if tools is None:
         tools = get_available_tools()
 
-    prompt = prompt + "YOU MUST USE A TOOL FOR EACH POST YOU WILL SEE."
-
+    # Add tool information to the prompt
+    tools_description = "\n\nAvailable tools:\n"
+    for tool in tools:
+        func_info = tool.get("function", {})
+        tools_description += f"- {func_info.get('name')}: {func_info.get('description')}\n"
+    
+    enhanced_prompt = prompt + tools_description + "\n\nYOU MUST USE A TOOL FOR EACH POST YOU WILL SEE. If you identify cryptocurrency tickers, list them clearly."
     
     # First call to get the model's response
-    payload = {"model": model, "prompt": prompt, "stream": False, "tools": tools}
-    headers = {"Content-Type": "application/json"}
-    # print("Payload:", payload)
-    resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=120)
-    resp.raise_for_status()
-    data = resp.json()
+    response = generate_with_openrouter(model, enhanced_prompt, api_key)
     
-    # # Afficher la réponse brute complète d'Ollama
-    # print("🔍 RÉPONSE BRUTE OLLAMA:")
-    # print(json.dumps(data, indent=2, ensure_ascii=False))
-    # print("=" * 50)
+    # Simple tool detection - look for ticker patterns in response
+    # This provides flexible analysis capabilities
+    ticker_pattern = r'\b[A-Z]{2,5}\b'  # Simple pattern for crypto tickers
+    potential_tickers = re.findall(ticker_pattern, response)
     
-    response = data.get("response", "")
+    # Filter common crypto tickers
+    crypto_tickers = [t for t in potential_tickers if t in [
+        'BTC', 'ETH', 'ADA', 'DOT', 'SOL', 'AVAX', 'MATIC', 'LINK', 'UNI', 'AAVE',
+        'ATOM', 'ALGO', 'VET', 'XRP', 'LTC', 'BCH', 'ETC', 'XLM', 'TRX', 'EOS'
+    ]]
     
-    # Check if the response contains tool calls (Ollama format)
-    message = data.get("message", {})
-    tool_calls = message.get("tool_calls", [])
-    
-    if tool_calls:
-        # Process the first tool call
-        tool_call = tool_calls[0]
-        function_info = tool_call.get("function", {})
-        tool_name = function_info.get("name")
-        tool_arguments = function_info.get("arguments", {})
+    if crypto_tickers:
+        print(f"🔧 Tool simulation: detected tickers {crypto_tickers}")
         
-        if tool_name:
-            print(f"🔧 Tool détecté: {tool_name} avec arguments: {tool_arguments}")
-            
-            # Execute the tool
-            tool_result = execute_tool(tool_name, tool_arguments)
-            
-            # Make a second call with the tool result
-            follow_up_prompt = f"{prompt}\n\nTool call result for {tool_name}: {tool_result}\n\nBased on this result, provide your final answer:"
-            
-            payload = {"model": model, "prompt": follow_up_prompt, "stream": False, "tools": tools}
-            resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=120)
-            resp.raise_for_status()
-            data = resp.json()
-            return data.get("response", "")
+        # Execute tool simulation
+        tool_result = execute_tool("extract_crypto_tickers", {"text": " ".join(crypto_tickers)})
+        
+        # Make a second call with the tool result
+        follow_up_prompt = f"{enhanced_prompt}\n\nTool call result for extract_crypto_tickers: {tool_result}\n\nBased on this result, provide your final answer:"
+        
+        return generate_with_openrouter(model, follow_up_prompt, api_key)
     
     return response
 
-def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, system_instruction: str | None = None, mock: bool = True, use_tools: bool = False) -> List[Dict[str, Any]]:
+
+def process_tweets_with_openrouter(
+    user_or_handle: str, 
+    limit: int, 
+    model: str, 
+    system_instruction: str | None = None, 
+    mock: bool = True, 
+    use_tools: bool = False
+) -> List[Dict[str, Any]]:
     """
-    Fetch tweets and process each with an Ollama model.
+    Fetch tweets and process each with an OpenRouter model.
     Returns a list of { created_at, id_str, full_text, analysis }.
     """
     # get_user_tweets returns either pretty-printed JSON (when as_json=True) or text; we need JSON
@@ -197,7 +216,6 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
         data = {"tweets": [{"full_text": raw}]}
 
     tweets = data.get("tweets", [])
-    ensure_model_present(model)
 
     results: List[Dict[str, Any]] = []
     for i, tw in enumerate(tweets, start=1):
@@ -221,10 +239,10 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
 
         try:
             if use_tools:
-                analysis = generate_with_ollama_tools(model=model, prompt=prompt)
+                analysis = generate_with_openrouter_tools(model=model, prompt=prompt)
             else:
                 # Mode sans tools : récupérer la réponse et extraire la liste finale
-                raw_response = generate_with_ollama(model=model, prompt=prompt)
+                raw_response = generate_with_openrouter(model=model, prompt=prompt)
                 print("🔍 RÉPONSE BRUTE DU MODÈLE:")
                 print(f"'{raw_response}'")
                 print("─" * 60)
@@ -312,7 +330,7 @@ def process_tweets_with_ollama(user_or_handle: str, limit: int, model: str, syst
                     print(f"❌ Erreur lors du parsing de la liste : {e}")
                     analysis = raw_response
         except Exception as e:
-            analysis = f"<ollama_error: {e}>"
+            analysis = f"<openrouter_error: {e}>"
 
         results.append({
             "created_at": created,

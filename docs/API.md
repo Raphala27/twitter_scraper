@@ -4,17 +4,17 @@ This document provides detailed information about the Twitter Scraper API and it
 
 ## Core Functions
 
-### `process_tweets_with_ollama()`
+### `process_tweets_with_openrouter()`
 
 Main function for processing tweets with AI analysis.
 
-**Location**: `models_logic/ollama_logic.py`
+**Location**: `models_logic/openrouter_logic.py`
 
 ```python
-def process_tweets_with_ollama(
+def process_tweets_with_openrouter(
     user_or_handle: str,
     limit: int = 2,
-    model: str = "qwen3:14b",
+    model: str = "mistralai/mistral-small-3.2-24b-instruct:free",
     system_instruction: str = None,
     mock: bool = False,
     use_tools: bool = True
@@ -24,7 +24,7 @@ def process_tweets_with_ollama(
 **Parameters:**
 - `user_or_handle` (str): Twitter username or handle (e.g., "@trader" or "trader")
 - `limit` (int): Number of tweets to process (default: 2)
-- `model` (str): Ollama model name (default: "qwen3:14b")
+- `model` (str): OpenRouter model name (default: "mistralai/mistral-small-3.2-24b-instruct:free")
 - `system_instruction` (str): Custom system prompt for AI analysis
 - `mock` (bool): Use mock data instead of real API calls (default: False)
 - `use_tools` (bool): Enable AI tools for structured extraction (default: True)
@@ -34,9 +34,9 @@ def process_tweets_with_ollama(
 
 **Example:**
 ```python
-from models_logic.ollama_logic import process_tweets_with_ollama
+from models_logic.openrouter_logic import process_tweets_with_openrouter
 
-results = process_tweets_with_ollama(
+results = process_tweets_with_openrouter(
     user_or_handle="@trader",
     limit=5,
     mock=True,
@@ -181,8 +181,8 @@ Extracts cryptocurrency tickers from text using regex patterns.
 |----------|-------------|----------|---------|
 | `TWITSCOUT_API_KEY` | Twitter API key | No (if using mock) | None |
 | `COINCAP_API_KEY` | CoinCap API key | No (if using mock) | None |
-| `OLLAMA_HOST` | Ollama server URL | No | `http://localhost:11434` |
-| `OLLAMA_MODEL` | Default Ollama model | No | `qwen3:14b` |
+| `COINGECKO_API_KEY` | CoinGecko API key | No (if using mock) | None |
+| `OPENROUTER_API_KEY` | OpenRouter.ai API key | Yes | None |
 
 ### Supported Cryptocurrencies (Mock Mode)
 
@@ -215,7 +215,8 @@ The following cryptocurrencies are supported in mock mode:
 
 - **TwitScout API**: Check your plan limits
 - **CoinCap API**: 500 requests/minute for free tier
-- **Ollama**: No limits (local installation)
+- **OpenRouter.ai**: Varies by model and plan
+- **CoinGecko API**: 10-30 requests/minute for free tier
 
 ## Testing
 
@@ -225,7 +226,7 @@ Use mock mode for testing without API calls:
 
 ```python
 # Mock scraping only
-results = process_tweets_with_ollama("@trader", mock=True)
+results = process_tweets_with_openrouter("@trader", mock=True)
 
 # Mock position simulation
 simulator = PositionSimulator(mock_mode=True)
@@ -238,5 +239,5 @@ simulator = PositionSimulator(mock_mode=True)
 python -m pytest tests/
 
 # Run specific test file
-python tests/test_ollama_tools.py
+python tests/test_openrouter_tools.py
 ```
