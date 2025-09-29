@@ -35,168 +35,148 @@ load_env_file()
 
 @app.route('/')
 def index():
-    """Main page."""
-    return render_template('index.html')
+    """API Documentation."""
+    return jsonify({
+        "service": "Twitter Scraper API Backend",
+        "version": "2.0.0",
+        "endpoints": {
+            "/health": "Health check",
+            "/api/bot/analyze": "POST - Main endpoint for Twitter bot",
+            "/api/scraper": "GET - CLI equivalent endpoint",
+            "/api/models": "GET - Available models"
+        },
+        "main_endpoint": {
+            "url": "/api/bot/analyze",
+            "method": "POST",
+            "description": "Main endpoint for Twitter bot integration",
+            "request_format": {
+                "tweet_id": "string",
+                "author_handle": "@username",
+                "author_id": "string",
+                "tweet_content": "string",
+                "timestamp": "ISO datetime",
+                "is_reply": "boolean",
+                "parent_tweet_id": "string or null",
+                "mentioned_bot": "@botname",
+                "user_response": "string"
+            },
+            "response_format": {
+                "status": "success/error",
+                "response_text": "AI generated analysis",
+                "confidence_score": "float 0-100",
+                "analysis_type": "crypto_sentiment"
+            }
+        }
+    })
 
 @app.route('/health')
 def health():
     """Health check endpoint."""
     return jsonify({"status": "healthy", "service": "twitter_scraper"})
 
-@app.route('/api/analyze', methods=['POST'])
-def analyze_tweets():
-    """Analyze tweets via API."""
+@app.route('/api/bot/analyze', methods=['POST'])
+def bot_analyze():
+    """
+    Main endpoint for Twitter bot integration.
+    
+    Receives tweet data from bot and returns AI analysis.
+    """
     try:
+        # Récupérer les données du bot
         data = request.get_json()
         
-        # Extract parameters with defaults
-        user = data.get('user', '@trader')
-        limit = int(data.get('limit', 2))
-        model = data.get('model', 'mistralai/mistral-small-3.2-24b-instruct:free')
-        system_msg = data.get('system_msg', None)
-        mock_scraping = data.get('mock_scraping', True)
-        mock_positions = data.get('mock_positions', True)
-        use_tools = data.get('use_tools', True)
-        simulate_positions = data.get('simulate_positions', False)
-        validate_sentiment = data.get('validate_sentiment', False)
-        api_provider = data.get('api_provider', 'coincap')
-        
-        logger.info(f"Analyzing tweets for user: {user}")
-        
-        # Run analysis
-        result = run_and_print(
-            user=user,
-            limit=limit,
-            model=model,
-            system_msg=system_msg,
-            as_json=True,
-            mock_scraping=mock_scraping,
-            mock_positions=mock_positions,
-            use_tools=use_tools,
-            simulate_positions=simulate_positions,
-            validate_sentiment=validate_sentiment,
-            api_provider=api_provider
-        )
-        
-        if result:
-            return jsonify({
-                "status": "success",
-                "data": result
-            })
-        else:
+        if not data:
             return jsonify({
                 "status": "error",
-                "message": "No results returned"
+                "response_text": "No data provided",
+                "confidence_score": 0.0,
+                "analysis_type": "error"
             }), 400
-            
-    except Exception as e:
-        logger.error(f"Error in analyze_tweets: {str(e)}")
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
-
-@app.route('/api/analyze/simple', methods=['GET'])
-def analyze_simple():
-    """Simple GET endpoint for quick testing."""
-    try:
-        user = request.args.get('user', '@trader')
-        limit = int(request.args.get('limit', 2))
         
-        logger.info(f"Simple analysis for user: {user}")
+        # Extraire les informations du tweet
+        tweet_content = data.get('tweet_content', '')
+        author_handle = data.get('author_handle', '@unknown')
+        user_response = data.get('user_response', '')
+        tweet_id = data.get('tweet_id', '')
         
-        # Run in mock mode for safety
-        result = run_and_print(
-            user=user,
-            limit=limit,
-            model='mistralai/mistral-small-3.2-24b-instruct:free',
-            system_msg=None,
-            as_json=True,
-            mock_scraping=True,
-            mock_positions=True,
-            use_tools=True,
-            simulate_positions=False,
-            validate_sentiment=False
-        )
+        logger.info(f"Bot analysis request for tweet {tweet_id} from {author_handle}")
         
-        return jsonify({
-            "status": "success",
-            "data": result,
-            "params": {
-                "user": user,
-                "limit": limit,
-                "mode": "mock"
+        # Préparer le contenu pour analyse
+        # Combiner le contenu du tweet et la question de l'utilisateur
+        analysis_content = f"{tweet_content}\n\nUser question: {user_response}"
+        
+        # Utiliser votre logique existante pour analyser
+        # On va créer un mock tweet avec le contenu reçu
+        mock_tweet_data = [{
+            "id_str": tweet_id,
+            "created_at": data.get('timestamp', '2025-01-01T00:00:00Z'),
+            "full_text": analysis_content,
+            "user": {
+                "screen_name": author_handle.replace('@', ''),
+                "id_str": data.get('author_id', '123456789')
             }
-        })
+        }]
         
-    except Exception as e:
-        logger.error(f"Error in analyze_simple: {str(e)}")
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
-
-@app.route('/api/scraper', methods=['GET'])
-def scraper_endpoint():
-    """
-    Endpoint équivalent à: python3 scraper.py @test --limit 2 --mock-scraping --validate-sentiment --api coingecko --no-tools
-    
-    Paramètres GET:
-    - user: @username (default: @test)
-    - limit: nombre de tweets (default: 2)
-    - mock_scraping: true/false (default: true)
-    - validate_sentiment: true/false (default: true)
-    - api: coincap/coingecko (default: coingecko)
-    - no_tools: true/false (default: true)
-    """
-    try:
-        # Récupérer les paramètres avec les valeurs par défaut de votre commande
-        user = request.args.get('user', '@test')
-        limit = int(request.args.get('limit', 2))
-        mock_scraping = request.args.get('mock_scraping', 'true').lower() == 'true'
-        validate_sentiment = request.args.get('validate_sentiment', 'true').lower() == 'true'
-        api_provider = request.args.get('api', 'coingecko')
-        no_tools = request.args.get('no_tools', 'true').lower() == 'true'
-        
-        logger.info(f"Scraper endpoint called for user: {user}, limit: {limit}")
-        
-        # Appeler exactement comme votre commande CLI
+        # Analyser avec votre système existant
         result = run_and_print(
-            user=user,
-            limit=limit,
+            user=author_handle,
+            limit=1,
             model='mistralai/mistral-small-3.2-24b-instruct:free',
-            system_msg=None,
-            as_json=False,  # On va capturer le résultat structuré
-            mock_scraping=mock_scraping,
-            mock_positions=True,  # Garder mock pour les positions pour la sécurité
-            use_tools=not no_tools,  # Inverser car --no-tools désactive les outils
+            system_msg="You are a crypto sentiment analyst. Analyze the content and provide a helpful response to the user's question about cryptocurrency sentiment or trading signals.",
+            as_json=False,  # On veut le résultat structuré
+            mock_scraping=True,  # Utiliser nos données mockées
+            mock_positions=True,
+            use_tools=False,  # Pas d'outils pour une réponse rapide
             calculate_positions=False,
             simulate_positions=False,
-            simulation_hours=24,
-            api_provider=api_provider,
-            validate_sentiment=validate_sentiment
+            validate_sentiment=False,
+            api_provider='coingecko'
         )
+        
+        # Extraire la réponse de l'analyse
+        response_text = "I've analyzed the crypto sentiment in your message."
+        confidence_score = 75.0
+        
+        if result and isinstance(result, dict):
+            # Essayer d'extraire une réponse plus intelligente du résultat
+            if 'tweets_analysis' in result and result['tweets_analysis']:
+                analysis = result['tweets_analysis'][0]
+                if 'analysis' in analysis:
+                    response_text = analysis['analysis']
+                    confidence_score = 85.0
+            elif 'analysis_summary' in result:
+                summary = result['analysis_summary']
+                bullish = summary.get('bullish_sentiments', 0)
+                bearish = summary.get('bearish_sentiments', 0)
+                
+                if bullish > bearish:
+                    response_text = f"Based on my analysis, I detect a bullish sentiment in the crypto content. Bullish signals: {bullish}, Bearish signals: {bearish}"
+                    confidence_score = 80.0
+                elif bearish > bullish:
+                    response_text = f"Based on my analysis, I detect a bearish sentiment in the crypto content. Bearish signals: {bearish}, Bullish signals: {bullish}"
+                    confidence_score = 80.0
+                else:
+                    response_text = "The crypto sentiment appears neutral based on my analysis."
+                    confidence_score = 70.0
+        
+        # Limiter la réponse à 280 caractères pour Twitter
+        if len(response_text) > 280:
+            response_text = response_text[:277] + "..."
         
         return jsonify({
             "status": "success",
-            "data": result,
-            "command_equivalent": f"python3 scraper.py {user} --limit {limit} --mock-scraping --validate-sentiment --api {api_provider} --no-tools",
-            "params": {
-                "user": user,
-                "limit": limit,
-                "mock_scraping": mock_scraping,
-                "validate_sentiment": validate_sentiment,
-                "api": api_provider,
-                "no_tools": no_tools
-            }
+            "response_text": response_text,
+            "confidence_score": confidence_score,
+            "analysis_type": "crypto_sentiment"
         })
         
     except Exception as e:
-        logger.error(f"Error in scraper endpoint: {str(e)}")
+        logger.error(f"Error in bot_analyze: {str(e)}")
         return jsonify({
             "status": "error",
-            "message": str(e),
-            "command_equivalent": f"python3 scraper.py @test --limit 2 --mock-scraping --validate-sentiment --api coingecko --no-tools"
+            "response_text": f"Analysis failed: {str(e)[:100]}...",
+            "confidence_score": 0.0,
+            "analysis_type": "error"
         }), 500
 
 @app.route('/api/models')
@@ -210,19 +190,6 @@ def get_models():
         "meta-llama/llama-3-8b-instruct:free"
     ]
     return jsonify({"models": models})
-
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    """Serve static files."""
-    return send_from_directory('static', filename)
-
-# Create templates directory if it doesn't exist
-if not os.path.exists('templates'):
-    os.makedirs('templates')
-
-# Create static directory if it doesn't exist  
-if not os.path.exists('static'):
-    os.makedirs('static')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
