@@ -55,7 +55,8 @@ python tests/test_openrouter_tools.py
 python -m pytest tests/ -v
 
 # Run specific test categories
-python tests/test_ollama_tools.py
+# Run specific test file
+python tests/test_openrouter_tools.py
 python tests/test_tools.py
 
 # Run with coverage

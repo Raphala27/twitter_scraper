@@ -1,6 +1,6 @@
-# Usage Guide for Twitter Scraper with Ollama Tools
+# Usage Guide for Twitter Scraper with OpenRouter Tools
 
-This script analyzes tweets using the Ollama model with integrated tools for crypto ticker extraction. Below are the different ways you can run the script and the arguments you can use.
+This script analyzes tweets using the OpenRouter.ai models with integrated tools for crypto ticker extraction. Below are the different ways you can run the script and the arguments you can use.
 
 ## Basic Command
 ```bash
@@ -18,7 +18,7 @@ python scraper.py
   python scraper.py --limit 5
   ```
 
-- `--model`: The Ollama model name/tag. Defaults to `qwen3:14b`.
+- `--model`: The OpenRouter model name/tag. Defaults to `mistralai/mistral-small-3.2-24b-instruct:free`.
   ```bash
   python scraper.py --model llama3.1:8b
   ```
@@ -95,5 +95,5 @@ When tools are enabled (default), the model can automatically call these tools w
 
 To test the tools functionality directly:
 ```bash
-python test_ollama_tools.py
+python test_openrouter_tools.py
 ```

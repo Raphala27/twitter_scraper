@@ -10,7 +10,7 @@ import json
 # Ajouter le répertoire parent au path pour les imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models_logic.ollama_logic import process_tweets_with_ollama, generate_with_ollama_tools, execute_tool, get_available_tools
+from models_logic.openrouter_logic import process_tweets_with_openrouter, generate_with_openrouter_tools, execute_tool, get_available_tools
 
 def test_basic_functionality():
     """Test de base pour vérifier que les imports et la fonction fonctionnent."""
@@ -18,16 +18,16 @@ def test_basic_functionality():
     
     try:
         # Test avec mock=True pour éviter les appels API
-        results = process_tweets_with_ollama(
+        results = process_tweets_with_openrouter(
             user_or_handle="testuser",
             limit=1,
-            model="qwen3:14b",
+            model="mistralai/mistral-small-3.2-24b-instruct:free",
             system_instruction="Test system instruction",
             mock=True,
             use_tools=False  # Désactiver les tools pour ce test simple
         )
         
-        print(f"✅ Fonction process_tweets_with_ollama fonctionne")
+        print(f"✅ Fonction process_tweets_with_openrouter fonctionne")
         print(f"Nombre de résultats: {len(results)}")
         if results:
             print(f"Premier résultat: {results[0]['full_text'][:50]}...")
@@ -44,10 +44,10 @@ def test_tools_integration():
     
     try:
         # Test avec tools activés
-        results = process_tweets_with_ollama(
+        results = process_tweets_with_openrouter(
             user_or_handle="testuser",
             limit=1,
-            model="qwen3:14b",
+            model="mistralai/mistral-small-3.2-24b-instruct:free",
             system_instruction="Extract crypto tickers",
             mock=True,
             use_tools=True

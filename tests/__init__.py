@@ -1,3 +1,3 @@
 """
-Tests package for Twitter Scraper with Ollama integration.
+Tests package for Twitter Scraper with OpenRouter integration.
 """
