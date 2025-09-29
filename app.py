@@ -35,37 +35,8 @@ load_env_file()
 
 @app.route('/')
 def index():
-<<<<<<< HEAD
     """Main page."""
     return render_template('index.html')
-=======
-    """API Documentation."""
-    return jsonify({
-        "service": "Twitter Scraper API",
-        "version": "1.0.0",
-        "endpoints": {
-            "/health": "Health check",
-            "/api/analyze": "POST - Full analysis with custom parameters",
-            "/api/analyze/simple": "GET - Simple analysis (legacy)",
-            "/api/scraper": "GET - Equivalent to CLI command",
-            "/api/models": "GET - Available models"
-        },
-        "main_endpoint": {
-            "url": "/api/scraper",
-            "method": "GET",
-            "description": "Equivalent to: python3 scraper.py @test --limit 2 --mock-scraping --validate-sentiment --api coingecko --no-tools",
-            "parameters": {
-                "user": "@test (default)",
-                "limit": "2 (default)", 
-                "mock_scraping": "true (default)",
-                "validate_sentiment": "true (default)",
-                "api": "coingecko (default)",
-                "no_tools": "true (default)"
-            },
-            "example": "/api/scraper?user=@test&limit=2"
-        }
-    })
->>>>>>> feature/add-api-endpoint
 
 @app.route('/health')
 def health():
@@ -258,8 +229,4 @@ if __name__ == '__main__':
     debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     
     logger.info(f"Starting Twitter Scraper API on port {port}")
-<<<<<<< HEAD
     app.run(host='0.0.0.0', port=port, debug=debug)
-=======
-    app.run(host='0.0.0.0', port=port, debug=debug)
->>>>>>> feature/add-api-endpoint
