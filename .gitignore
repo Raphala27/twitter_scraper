@@ -240,7 +240,7 @@ cache/
 downloads/
 scraped_data/
 twitter_data/
-ollama_responses/
+openrouter_responses/
 .env.local
 .env.production
 config.json
@@ -248,8 +248,8 @@ secrets.json
 api_keys.txt
 credentials.json
 
-# Ollama specific
-ollama_models/
+# OpenRouter specific
+openrouter_models/
 model_cache/
 
 # Twitter API specific

@@ -1,11 +1,11 @@
 # Twitter Scraper with AI Analysis
 
-A Python application that scrapes Twitter data and analyzes cryptocurrency trading signals using AI (Ollama) with position simulation capabilities.
+A Python application that scrapes Twitter data and analyzes cryptocurrency trading signals using AI (OpenRouter.ai) with position simulation capabilities.
 
 ## 🚀 Features
 
 - **Twitter Scraping**: Fetch tweets from any Twitter account
-- **AI Analysis**: Extract cryptocurrency trading signals using Ollama
+- **AI Analysis**: Extract cryptocurrency trading signals using OpenRouter.ai
 - **Position Simulation**: Simulate trading positions with historical price data
 - **Mock Mode**: Test without API calls
 - **Multiple Output Formats**: JSON or formatted text output
@@ -30,20 +30,10 @@ A Python application that scrapes Twitter data and analyzes cryptocurrency tradi
    # Edit .env with your API keys
    ```
 
-4. **Install Ollama** (if not already installed):
-   ```bash
-   # macOS
-   brew install ollama
-   
-   # Linux
-   curl -fsSL https://ollama.ai/install.sh | sh
-   ```
-
-5. **Start Ollama and pull a model**:
-   ```bash
-   ollama serve
-   ollama pull qwen3:14b
-   ```
+4. **Configure OpenRouter.ai**:
+   - Sign up at [OpenRouter.ai](https://openrouter.ai)
+   - Get your API key from the dashboard
+   - Add it to your `.env` file
 
 ## ⚙️ Configuration
 
@@ -59,8 +49,8 @@ COINGECKO_API_KEY=your_coingecko_api_key
 # Required for position simulation (optional in mock mode)
 COINCAP_API_KEY=your_coincap_api_key
 
-# Optional: Ollama configuration
-OLLAMA_HOST=http://localhost:11434
+# OpenRouter.ai Configuration
+OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
 ## 🎯 Quick Start
@@ -87,7 +77,7 @@ python scraper.py @trader --limit 5 --simulate
 |--------|-------------|---------|
 | `user` | Twitter handle or user ID | `@trader` |
 | `--limit` | Number of tweets to analyze | `2` |
-| `--model` | Ollama model to use | `qwen3:14b` |
+| `--model` | OpenRouter model to use | `mistralai/mistral-small-3.2-24b-instruct:free` |
 | `--mock-scraping` | Use mock tweets (no Twitter API) | `False` |
 | `--mock-positions` | Use mock prices (no CoinCap API) | `False` |
 | `--mock` | Enable both mock modes | `False` |
@@ -213,7 +203,7 @@ twitter_scraper/
 ├── scraper.py              # Main entry point
 ├── utils_scraper.py        # Twitter scraping utilities
 ├── models_logic/           # AI analysis
-│   ├── ollama_logic.py     # Ollama integration
+│   ├── openrouter_logic.py # OpenRouter.ai integration
 │   └── tools.py            # AI tools for crypto analysis
 ├── coincap_api/            # Price data and simulation
 │   ├── fetch_prices.py     # Price fetching
@@ -233,7 +223,7 @@ Run the test suite:
 python -m pytest tests/
 
 # Run specific test categories
-python tests/test_ollama_tools.py
+python tests/test_openrouter_tools.py
 python tests/test_tools.py
 ```
 
@@ -259,9 +249,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ### Common Issues
 
-**"Ollama connection error"**
-- Ensure Ollama is running: `ollama serve`
-- Check if the model exists: `ollama list`
+**"OpenRouter API error"**
+- Verify your OpenRouter.ai API key is valid
+- Check your account has sufficient credits
+- Ensure the model name is correct
 
 **"API key not found"**
 - Verify `.env` file exists and contains valid keys
