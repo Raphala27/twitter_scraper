@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
+<<<<<<< HEAD
 Flask Web Application for Twitter Scraper with AI Analysis
+=======
+Flask Web Application for Twitter Scraper with AI Analysis.
+>>>>>>> feature/add-api-endpoint
 
 Web interface for the Twitter Scraper with AI Analysis tool.
 Provides REST API endpoints and a simple web interface.
@@ -31,8 +35,37 @@ load_env_file()
 
 @app.route('/')
 def index():
+<<<<<<< HEAD
     """Main page."""
     return render_template('index.html')
+=======
+    """API Documentation."""
+    return jsonify({
+        "service": "Twitter Scraper API",
+        "version": "1.0.0",
+        "endpoints": {
+            "/health": "Health check",
+            "/api/analyze": "POST - Full analysis with custom parameters",
+            "/api/analyze/simple": "GET - Simple analysis (legacy)",
+            "/api/scraper": "GET - Equivalent to CLI command",
+            "/api/models": "GET - Available models"
+        },
+        "main_endpoint": {
+            "url": "/api/scraper",
+            "method": "GET",
+            "description": "Equivalent to: python3 scraper.py @test --limit 2 --mock-scraping --validate-sentiment --api coingecko --no-tools",
+            "parameters": {
+                "user": "@test (default)",
+                "limit": "2 (default)", 
+                "mock_scraping": "true (default)",
+                "validate_sentiment": "true (default)",
+                "api": "coingecko (default)",
+                "no_tools": "true (default)"
+            },
+            "example": "/api/scraper?user=@test&limit=2"
+        }
+    })
+>>>>>>> feature/add-api-endpoint
 
 @app.route('/health')
 def health():
@@ -132,6 +165,69 @@ def analyze_simple():
             "message": str(e)
         }), 500
 
+@app.route('/api/scraper', methods=['GET'])
+def scraper_endpoint():
+    """
+    Endpoint équivalent à: python3 scraper.py @test --limit 2 --mock-scraping --validate-sentiment --api coingecko --no-tools
+    
+    Paramètres GET:
+    - user: @username (default: @test)
+    - limit: nombre de tweets (default: 2)
+    - mock_scraping: true/false (default: true)
+    - validate_sentiment: true/false (default: true)
+    - api: coincap/coingecko (default: coingecko)
+    - no_tools: true/false (default: true)
+    """
+    try:
+        # Récupérer les paramètres avec les valeurs par défaut de votre commande
+        user = request.args.get('user', '@test')
+        limit = int(request.args.get('limit', 2))
+        mock_scraping = request.args.get('mock_scraping', 'true').lower() == 'true'
+        validate_sentiment = request.args.get('validate_sentiment', 'true').lower() == 'true'
+        api_provider = request.args.get('api', 'coingecko')
+        no_tools = request.args.get('no_tools', 'true').lower() == 'true'
+        
+        logger.info(f"Scraper endpoint called for user: {user}, limit: {limit}")
+        
+        # Appeler exactement comme votre commande CLI
+        result = run_and_print(
+            user=user,
+            limit=limit,
+            model='mistralai/mistral-small-3.2-24b-instruct:free',
+            system_msg=None,
+            as_json=False,  # On va capturer le résultat structuré
+            mock_scraping=mock_scraping,
+            mock_positions=True,  # Garder mock pour les positions pour la sécurité
+            use_tools=not no_tools,  # Inverser car --no-tools désactive les outils
+            calculate_positions=False,
+            simulate_positions=False,
+            simulation_hours=24,
+            api_provider=api_provider,
+            validate_sentiment=validate_sentiment
+        )
+        
+        return jsonify({
+            "status": "success",
+            "data": result,
+            "command_equivalent": f"python3 scraper.py {user} --limit {limit} --mock-scraping --validate-sentiment --api {api_provider} --no-tools",
+            "params": {
+                "user": user,
+                "limit": limit,
+                "mock_scraping": mock_scraping,
+                "validate_sentiment": validate_sentiment,
+                "api": api_provider,
+                "no_tools": no_tools
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in scraper endpoint: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "command_equivalent": f"python3 scraper.py @test --limit 2 --mock-scraping --validate-sentiment --api coingecko --no-tools"
+        }), 500
+
 @app.route('/api/models')
 def get_models():
     """Get available models."""
@@ -162,4 +258,8 @@ if __name__ == '__main__':
     debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     
     logger.info(f"Starting Twitter Scraper API on port {port}")
+<<<<<<< HEAD
     app.run(host='0.0.0.0', port=port, debug=debug)
+=======
+    app.run(host='0.0.0.0', port=port, debug=debug)
+>>>>>>> feature/add-api-endpoint
