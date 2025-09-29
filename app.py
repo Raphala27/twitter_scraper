@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Flask Web Application for Twitter Scraper with AI Analysis
+Flask Web Application for Twitter Scraper with AI Analysis.
 
 Web interface for the Twitter Scraper with AI Analysis tool.
 Provides REST API endpoints and a simple web interface.
