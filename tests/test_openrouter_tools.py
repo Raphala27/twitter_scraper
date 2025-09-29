@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
-Script de test pour les tools Ollama avec extraction de tickers crypto.
+Script de test pour les tools OpenRouter avec extraction de tickers crypto.
 """
 
-from process_with_ollama import test_tools_with_ollama, process_tweets_with_ollama
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from models_logic.openrouter_logic import process_tweets_with_openrouter, generate_with_openrouter_tools
 
 def test_direct_tool_call():
     """Test direct de la fonctionnalité des tools."""
@@ -17,12 +21,12 @@ def test_direct_tool_call():
         "No crypto content here, just talking about stocks."
     ]
     
-    model = "qwen3:14b"
+    model = "mistralai/mistral-small-3.2-24b-instruct:free"
     
     for i, test_case in enumerate(test_cases, 1):
         print(f"\n--- Test Case {i} ---")
         print(f"Input: {test_case}")
-        result = test_tools_with_ollama(model, test_case)
+        result = generate_with_openrouter_tools(model, test_case)
         print(f"Result: {result}")
         print("-" * 50)
 
@@ -31,10 +35,10 @@ def test_tweet_processing():
     print("\n=== Test Traitement des Tweets avec Tools ===")
     
     # Test avec des données mock
-    results = process_tweets_with_ollama(
+    results = process_tweets_with_openrouter(
         user_or_handle="testuser",
         limit=2,
-        model="qwen3:14b",
+        model="mistralai/mistral-small-3.2-24b-instruct:free",
         system_instruction="You are a crypto analyst. Extract cryptocurrency tickers from social media posts.",
         mock=True,
         use_tools=True

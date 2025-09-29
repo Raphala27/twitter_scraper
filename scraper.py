@@ -3,7 +3,7 @@
 Twitter Scraper with AI Analysis
 
 Main entry point for scraping Twitter data and analyzing cryptocurrency 
-trading signals using Ollama AI with optional position simulation.
+trading signals using OpenRouter AI with optional position simulation.
 """
 
 # Standard library imports
@@ -16,10 +16,10 @@ from typing import Optional
 # Local application imports
 try:
     # Try relative imports when run as module
-    from .models_logic import process_tweets_with_ollama
+    from .models_logic import process_tweets_with_openrouter
 except ImportError:
     # Fallback for direct execution
-    from models_logic import process_tweets_with_ollama
+    from models_logic import process_tweets_with_openrouter
 
 
 def load_env_file() -> None:
@@ -54,7 +54,7 @@ def run_and_print(
     Args:
         user: Twitter username or handle
         limit: Number of tweets to analyze
-        model: Ollama model name
+        model: OpenRouter model name
         system_msg: Custom system instruction
         as_json: Output in JSON format
         mock_scraping: Use mock tweets
@@ -71,7 +71,7 @@ def run_and_print(
     load_env_file()
     
     # Process tweets with AI analysis
-    results = process_tweets_with_ollama(
+    results = process_tweets_with_openrouter(
         user, limit, model, 
         system_instruction=system_msg, 
         mock=mock_scraping, 
@@ -95,7 +95,7 @@ def _display_results(
     mock_positions: bool,
     api_provider: str = "coincap",
     validate_sentiment: bool = False,
-    model: str = "qwen3:14b",
+    model: str = "mistralai/mistral-small-3.2-24b-instruct:free",
     system_msg: Optional[str] = None
 ) -> Optional[dict]:
     """Display results in formatted console output and return structured data."""
@@ -135,8 +135,8 @@ def _display_results(
             # Display final analysis summary
             _display_final_analysis_summary(cons_data)
         
-        # Final Ollama analysis of all collected data
-        _handle_final_ollama_analysis(cons_data, model, system_msg)
+        # Final OpenRouter analysis of all collected data
+        _handle_final_ai_analysis(cons_data, model, system_msg)
         
         print("\n" + "🏁" * 10 + " FIN DE L'ANALYSE " + "🏁" * 10)
         
@@ -435,19 +435,19 @@ def _display_final_analysis_summary(consolidated_data: dict) -> None:
     
     print("\n" + "🎯" * 60)
     
-    # Don't display the dictionary again here - it will be shown after Ollama analysis
+    # Don't display the dictionary again here - it will be shown after AI analysis
 
 
-def _handle_final_ollama_analysis(consolidated_data: dict, model: str = "qwen3:14b", system_msg: Optional[str] = None) -> None:
-    """Send the complete analysis to Ollama for final interpretation and insights."""
-    print("\n" + "🤖" * 20 + " ANALYSE FINALE PAR OLLAMA " + "🤖" * 20)
+def _handle_final_ai_analysis(consolidated_data: dict, model: str = "mistralai/mistral-small-3.2-24b-instruct:free", system_msg: Optional[str] = None) -> None:
+    """Send the complete analysis to OpenRouter for final interpretation and insights."""
+    print("\n" + "🤖" * 20 + " ANALYSE FINALE PAR IA " + "🤖" * 20)
     
     try:
-        # Import Ollama functions
+        # Import OpenRouter functions
         try:
-            from .models_logic.ollama_logic import generate_with_ollama
+            from .models_logic.openrouter_logic import generate_with_openrouter
         except ImportError:
-            from models_logic.ollama_logic import generate_with_ollama
+            from models_logic.openrouter_logic import generate_with_openrouter
         
         # Create analysis prompt
         analysis_prompt = f"""
@@ -470,29 +470,29 @@ Utilise le jargon crypto (moon, dump, ape, diamond hands, etc.).
 Reste factuel mais amusant. Pas plus de 3-4 phrases par section.
         """
         
-        print("🧠 Génération de l'analyse finale par Ollama...")
+        print("🧠 Génération de l'analyse finale par OpenRouter...")
         print("📊 Traitement des données collectées...")
         
-        # Get final analysis from Ollama
-        final_analysis = generate_with_ollama(
+        # Get final analysis from OpenRouter
+        final_analysis = generate_with_openrouter(
             model=model,
             prompt=analysis_prompt
         )
         
         print("\n" + "💬" * 60)
-        print("🤖 ANALYSE FINALE D'OLLAMA:")
+        print("🤖 ANALYSE FINALE D'IA:")
         print("💬" * 60)
         print(final_analysis)
         print("💬" * 60)
         
-        # Display the complete dictionary after Ollama analysis
+        # Display the complete dictionary after AI analysis
         print("\n" + "📄" * 15 + " DICTIONNAIRE FINAL COMPLET " + "📄" * 15)
         print("🔧 Données complètes utilisées pour l'analyse:")
         print(json.dumps(consolidated_data, indent=2, ensure_ascii=False))
         
     except Exception as e:
-        print(f"⚠️ Erreur lors de l'analyse finale par Ollama: {e}")
-        print("🔄 Affichage du dictionnaire sans analyse Ollama:")
+        print(f"⚠️ Erreur lors de l'analyse finale par OpenRouter: {e}")
+        print("🔄 Affichage du dictionnaire sans analyse IA:")
         
         # Fallback: just display the dictionary
         print("\n" + "📄" * 15 + " DICTIONNAIRE FINAL COMPLET " + "📄" * 15)
@@ -506,7 +506,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze crypto sentiment in posts and validate influencer predictions over time.")
     parser.add_argument("user", nargs="?", default="swissborg", help="Twitter numeric user_id or handle (e.g., 44196397 or @elonmusk)")
     parser.add_argument("--limit", type=int, default=2, help="Number of posts to fetch")
-    parser.add_argument("--model", type=str, default="qwen3:14b", help="Ollama model name/tag")
+    parser.add_argument("--model", type=str, default="mistralai/mistral-small-3.2-24b-instruct:free", help="OpenRouter model name/tag")
     parser.add_argument("--system", type=str, default=prompt, help="Optional system instruction to prepend")
     parser.add_argument("--json", action="store_true", help="Output JSON instead of pretty text")
     parser.add_argument("--mock-scraping", action="store_true", help="Fetch posts in mock mode (no API calls)")
@@ -529,7 +529,7 @@ if __name__ == "__main__":
         system_msg = args.system
         
         while True:
-            print("\n=== Ollama Tweet Analyzer ===")
+            print("\n=== OpenRouter Tweet Analyzer ===")
             print(f"1) Set user/handle          : {user or '(not set)'}")
             print(f"2) Set limit                : {limit}")
             print(f"3) Set model                : {model}")
@@ -548,7 +548,7 @@ if __name__ == "__main__":
                 except ValueError:
                     print("Invalid number")
             elif choice == "3":
-                model = input("Enter Ollama model (e.g., llama3.1:8b): ").strip() or model
+                model = input("Enter OpenRouter model (e.g., mistralai/mistral-small-3.2-24b-instruct:free): ").strip() or model
             elif choice == "4":
                 system_msg = input("Enter system instruction (optional): ").strip() or None
             elif choice == "5":

@@ -31,18 +31,22 @@ Thank you for your interest in contributing to the Twitter Scraper project! This
    # Edit .env with test API keys (optional for mock mode)
    ```
 
-4. **Install Ollama** (for AI functionality):
+4. **Set up OpenRouter.ai** (for AI functionality):
    ```bash
-   # macOS
-   brew install ollama
-   
-   # Linux
-   curl -fsSL https://ollama.ai/install.sh | sh
-   
-   # Start Ollama and pull model
-   ollama serve
-   ollama pull qwen3:14b
+   # Sign up at https://openrouter.ai
+   # Get your API key from the dashboard
+   # Add it to your .env file:
+   echo "OPENROUTER_API_KEY=your_api_key_here" >> .env
    ```
+
+### Running Tests
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run specific test file
+python tests/test_openrouter_tools.py
 
 ### Running Tests
 
@@ -136,7 +140,7 @@ def process_tweets(
 
 1. **New AI Tools**: Add to `models_logic/tools.py`
 2. **New API Integrations**: Create new module in appropriate package
-3. **New Analysis Types**: Extend `models_logic/ollama_logic.py`
+3. **New Analysis Types**: Extend `models_logic/openrouter_logic.py`
 4. **New Simulation Features**: Extend `coincap_api/position_simulator.py`
 
 ## 🧪 Testing
@@ -248,7 +252,7 @@ A clear description of the bug.
 **Environment**
 - Python version: 3.x
 - OS: macOS/Linux/Windows
-- Ollama version: x.x.x
+- OpenRouter.ai model: model name
 - Mock mode: Yes/No
 
 **Error Output**
