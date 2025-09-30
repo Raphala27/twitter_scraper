@@ -18,7 +18,7 @@ python scraper.py
   python scraper.py --limit 5
   ```
 
-- `--model`: The OpenRouter model name/tag. Defaults to `mistralai/mistral-small-3.2-24b-instruct:free`.
+- `--model`: The OpenRouter model name/tag. Defaults to `x-ai/grok-4-fast:free`.
   ```bash
   python scraper.py --model llama3.1:8b
   ```

@@ -15,7 +15,7 @@ from typing import Optional
 def quick_crypto_analysis(
     tweet_content: str,
     user: str = "@test",
-    model: str = "mistralai/mistral-small-3.2-24b-instruct:free",
+    model: str = "x-ai/grok-4-fast:free",
     tweet_timestamp: str = None
 ) -> str:
     """
@@ -40,16 +40,22 @@ def quick_crypto_analysis(
         from coingecko_api.sentiment_validator import SentimentValidator
         
         # 1. Analyser directement le contenu du tweet avec OpenRouter
-        # Créer un prompt pour extraire les cryptos et sentiments du tweet
+        # Create a prompt to extract cryptos and sentiments from the tweet
         extraction_prompt = f"""
-Tu es un expert analyste crypto. Analyse ce tweet et extrais les informations suivantes au format JSON:
+You are a crypto expert analyst. Analyze this tweet and extract cryptocurrency mentions and sentiment.
 
 TWEET: "{tweet_content}"
 
-Retourne UNIQUEMENT un JSON avec cette structure:
-[{{"ticker": "BTC", "sentiment": "bullish|bearish|neutral", "context": "raison du sentiment"}}]
+Look for cryptocurrency mentions including:
+- Tickers
+- Full names
+- Context clues about crypto sentiment (bullish, bearish, neutral)
 
-Si aucune crypto n'est mentionnée, retourne: []
+Return ONLY a JSON array with this exact structure:
+[{{"ticker": "Crypto_ticker", "sentiment": "bullish", "context": "reason for sentiment"}}]
+
+Sentiment must be one of: "bullish", "bearish", "neutral"
+If no crypto is mentioned, return: []
         """
         
         # Extraire les cryptos du tweet
@@ -71,18 +77,18 @@ Si aucune crypto n'est mentionnée, retourne: []
             crypto_analysis = []
         
         if not crypto_analysis:
-            return "Aucune crypto détectée dans ce tweet."
+            return "No crypto detected in this tweet."
         
         # 2. Créer les données consolidées simulant le format original
         from datetime import datetime, timedelta
         
-        # Utiliser le timestamp du tweet fourni, ou un timestamp dans le passé par défaut
+        # Use the provided tweet timestamp, or a past timestamp as fallback
         if tweet_timestamp:
-            # Utiliser le timestamp du tweet reçu du bot
+            # Use the timestamp from the bot's tweet
             current_time = tweet_timestamp
         else:
-            # Fallback : utiliser un timestamp dans le passé (comme dans la commande CLI)
-            past_time = datetime.now() - timedelta(days=3)  # Il y a 3 jours
+            # Fallback: use a past timestamp (like in CLI command)
+            past_time = datetime.now() - timedelta(days=3)  # 3 days ago
             current_time = past_time.isoformat() + "Z"
         
         consolidated_data = {
@@ -142,10 +148,10 @@ Si aucune crypto n'est mentionnée, retourne: []
                 }
                 
         except Exception as validation_error:
-            # Fallback en cas d'erreur de validation CoinGecko
+            # Fallback in case of CoinGecko validation error
             consolidated_data["sentiment_validation"] = {
                 "validation_status": "error",
-                "error_message": f"Validation temporelle non disponible: {str(validation_error)}",
+                "error_message": f"Temporal validation unavailable: {str(validation_error)}",
                 "summary": {
                     "total_predictions": len(consolidated_data["tweets_analysis"]),
                     "accuracy_1h_percent": 0,
@@ -157,34 +163,34 @@ Si aucune crypto n'est mentionnée, retourne: []
                 }
             }
         
-        # 4. Génération de l'analyse finale par OpenRouter
-        system_msg = "Tu es un expert analyste crypto avec un sens de l'humour qui s'adresse à la communauté crypto."
+        # 4. Generate final analysis with OpenRouter
+        system_msg = "You are an expert crypto analyst with a sense of humor who speaks to the crypto community."
         
-        # Vérifier si on a des données de validation
+        # Check if we have validation data
         has_validation = consolidated_data.get("sentiment_validation", {}).get("validation_status") == "success"
         
         analysis_prompt = f"""
 {system_msg}
 
-Tu es un analyste crypto qui parle à des crypto-bros. Sois concis, direct et un peu sarcastique.
+You are a crypto analyst talking to crypto bros. Be concise, direct and slightly sarcastic.
 
-DONNÉES D'ANALYSE:
+ANALYSIS DATA:
 {json.dumps(consolidated_data, indent=2, ensure_ascii=False)}
 
 INSTRUCTIONS:
-Analyse ces données et donne un compte-rendu COURT (max 200 mots) avec:
+Analyze this data and give a SHORT report (max 200 words) with:
 
-🎯 **LE DEAL**: Qui c'est et qu'est-ce qu'il predict
-🎯 **SES SKILLS**: {"Il a visé juste ou il s'est planté ? (précision %)" if has_validation else "Analyse du sentiment sans validation temporelle"}
-🎯 **VERDICT FINAL**: DYOR ou "trust me bro" ?
+🎯 **THE DEAL**: Who is this and what they predict
+🎯 **THEIR SKILLS**: {"Did they nail it or get rekt? (accuracy %)" if has_validation else "Sentiment analysis without temporal validation"}
+🎯 **FINAL VERDICT**: DYOR or "trust me bro"?
 
-Style: Ton de la crypto Twitter, un peu moqueur mais informatif. 
-Reste factuel mais amusant. Pas plus de 3-4 phrases par section.
+Style: Crypto Twitter tone, slightly mocking but informative. 
+Stay factual but entertaining. No more than 3-4 sentences per section.
 
-NOTE: {"Les données de validation temporelle sont disponibles" if has_validation else "Les données de validation temporelle ne sont pas disponibles - base ton analyse sur le sentiment détecté uniquement"}
+NOTE: {"Temporal validation data is available" if has_validation else "Temporal validation data is not available - base your analysis on detected sentiment only"}
         """
         
-        # Get final analysis from OpenRouter (C'EST ÇA QU'ON VEUT RETOURNER)
+        # Get final analysis from OpenRouter (THIS IS WHAT WE WANT TO RETURN)
         final_analysis = generate_with_openrouter(
             model=model,
             prompt=analysis_prompt
@@ -193,29 +199,29 @@ NOTE: {"Les données de validation temporelle sont disponibles" if has_validatio
         return final_analysis
         
     except Exception as e:
-        return f"Erreur lors de l'analyse: {str(e)}"
+        return f"Error during analysis: {str(e)}"
 
 
 # Fonction de test pour vérifier que ça marche
 def test_quick_analysis():
-    """Test de la fonction quick_crypto_analysis"""
-    print("🚀 Test de la fonction quick_crypto_analysis...")
+    """Test the quick_crypto_analysis function"""
+    print("🚀 Testing quick_crypto_analysis function...")
     
-    # Test avec un tweet Bitcoin et un timestamp dans le passé
+    # Test with a Bitcoin tweet and a past timestamp
     test_tweet = "Bitcoin is looking strong today! The fundamentals are solid and adoption is growing. 🚀 #BTC"
     
-    # Utiliser un timestamp dans le passé pour avoir les données CoinGecko
+    # Use a past timestamp to have CoinGecko data
     from datetime import datetime, timedelta
     past_timestamp = (datetime.now() - timedelta(days=2)).isoformat() + "Z"
     
     result = quick_crypto_analysis(
         tweet_content=test_tweet,
         user="@elonmusk",
-        model="mistralai/mistral-small-3.2-24b-instruct:free",
+        model="x-ai/grok-4-fast:free",
         tweet_timestamp=past_timestamp
     )
     
-    print("✅ Résultat obtenu:")
+    print("✅ Result obtained:")
     print("=" * 60)
     print(result)
     print("=" * 60)
@@ -224,5 +230,5 @@ def test_quick_analysis():
 
 
 if __name__ == "__main__":
-    # Si on exécute ce fichier directement, on fait un test
+    # If we run this file directly, run a test
     test_quick_analysis()

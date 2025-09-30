@@ -21,7 +21,7 @@ def test_direct_tool_call():
         "No crypto content here, just talking about stocks."
     ]
     
-    model = "mistralai/mistral-small-3.2-24b-instruct:free"
+    model = "x-ai/grok-4-fast:free"
     
     for i, test_case in enumerate(test_cases, 1):
         print(f"\n--- Test Case {i} ---")
@@ -38,7 +38,7 @@ def test_tweet_processing():
     results = process_tweets_with_openrouter(
         user_or_handle="testuser",
         limit=2,
-        model="mistralai/mistral-small-3.2-24b-instruct:free",
+        model="x-ai/grok-4-fast:free",
         system_instruction="You are a crypto analyst. Extract cryptocurrency tickers from social media posts.",
         mock=True,
         use_tools=True

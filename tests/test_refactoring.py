@@ -21,7 +21,7 @@ def test_basic_functionality():
         results = process_tweets_with_openrouter(
             user_or_handle="testuser",
             limit=1,
-            model="mistralai/mistral-small-3.2-24b-instruct:free",
+            model="x-ai/grok-4-fast:free",
             system_instruction="Test system instruction",
             mock=True,
             use_tools=False  # Désactiver les tools pour ce test simple
@@ -47,7 +47,7 @@ def test_tools_integration():
         results = process_tweets_with_openrouter(
             user_or_handle="testuser",
             limit=1,
-            model="mistralai/mistral-small-3.2-24b-instruct:free",
+            model="x-ai/grok-4-fast:free",
             system_instruction="Extract crypto tickers",
             mock=True,
             use_tools=True
