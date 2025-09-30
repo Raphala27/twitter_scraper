@@ -104,50 +104,32 @@ def bot_analyze():
         logger.info(f"Tweet content: {tweet_content}")
         logger.info(f"User response: {user_response}")
         
-        # UTILISER DIRECTEMENT VOS MODULES D'ANALYSE
-        from models_logic.openrouter_logic import generate_with_openrouter
-        from coingecko_api.sentiment_validator import SentimentValidator
+        # UTILISER LA NOUVELLE FONCTION quick_crypto_analysis
+        from quick_analysis import quick_crypto_analysis
         
-        # Préparer le contenu à analyser
-        content_to_analyze = f"""
-        Tweet from {author_handle}: {tweet_content}
+        # Combiner le contenu du tweet et la question de l'utilisateur
+        full_content = f"{tweet_content}\n\nUser question: {user_response}"
         
-        User question: {user_response}
-        
-        Please provide a crypto sentiment analysis focusing on any cryptocurrencies mentioned.
-        """
-        
-        # Utiliser votre système d'analyse directement
-        ai_analysis = generate_with_openrouter(
+        # Appeler la fonction qui fait toute l'analyse (extraction + validation + IA finale)
+        ai_analysis = quick_crypto_analysis(
+            tweet_content=full_content,
+            user=author_handle,
             model='mistralai/mistral-small-3.2-24b-instruct:free',
-            prompt=content_to_analyze
+            tweet_timestamp=timestamp  # Passer le timestamp du tweet pour la validation CoinGecko
         )
         
-        # Récupérer l'analyse du modèle
-        confidence_score = 75.0
+        # La fonction retourne déjà l'analyse finale formatée
+        response_text = ai_analysis
+        confidence_score = 85.0  # Score élevé car on utilise validation CoinGecko
         
-        if ai_analysis:
-            # Pour l'instant, formatons directement l'analyse sans validation complexe
-            # Vous pourrez ajouter la validation CoinGecko plus tard si nécessaire
-            
-            # Formatter la réponse directement avec l'analyse IA
-            response_text = f"🔍 Crypto Analysis:\n{ai_analysis[:200]}"
-            
-            # Détecter le sentiment basé sur des mots-clés
-            ai_lower = ai_analysis.lower()
-            if any(word in ai_lower for word in ['bullish', 'buy', 'pump', 'moon', 'rise', 'up']):
-                response_text += "\n📈 Bullish sentiment detected"
-                confidence_score = 80.0
-            elif any(word in ai_lower for word in ['bearish', 'sell', 'dump', 'crash', 'fall', 'down']):
-                response_text += "\n📉 Bearish sentiment detected"
-                confidence_score = 80.0
-            else:
-                response_text += "\n➡️ Neutral sentiment"
-                confidence_score = 70.0
-                
-        else:
-            response_text = "Unable to complete analysis at this time"
-            confidence_score = 0.0
+        # Détecter le sentiment basé sur des mots-clés pour ajuster le score
+        ai_lower = ai_analysis.lower()
+        if "0%" in ai_analysis or "faible" in ai_lower or "aucune crypto" in ai_lower:
+            confidence_score = 25.0
+        elif any(word in ai_lower for word in ['excellente', 'bonne', 'précis', 'moon']):
+            confidence_score = 90.0
+        elif any(word in ai_lower for word in ['moyenne', 'modérée', 'prudent']):
+            confidence_score = 60.0
         
         # Limiter à 280 caractères pour Twitter
         if len(response_text) > 280:
