@@ -77,7 +77,7 @@ python scraper.py @trader --limit 5 --simulate
 |--------|-------------|---------|
 | `user` | Twitter handle or user ID | `@trader` |
 | `--limit` | Number of tweets to analyze | `2` |
-| `--model` | OpenRouter model to use | `mistralai/mistral-small-3.2-24b-instruct:free` |
+| `--model` | OpenRouter model to use | `x-ai/grok-4-fast:free` |
 | `--mock-scraping` | Use mock tweets (no Twitter API) | `False` |
 | `--mock-positions` | Use mock prices (no CoinCap API) | `False` |
 | `--mock` | Enable both mock modes | `False` |

@@ -23,7 +23,7 @@ def basic_analysis_example():
     results = process_tweets_with_openrouter(
         user_or_handle="@trader",
         limit=3,
-        model="mistralai/mistral-small-3.2-24b-instruct:free",
+        model="x-ai/grok-4-fast:free",
         system_instruction="Extract cryptocurrency trading signals from tweets.",
         mock=True,  # Use mock data for this example
         use_tools=True

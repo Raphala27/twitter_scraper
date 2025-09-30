@@ -41,7 +41,7 @@ def generate_with_openrouter(
     Call OpenRouter API with a prompt and return the response.
     
     Args:
-        model: OpenRouter model name (e.g., "mistralai/mistral-small-3.2-24b-instruct:free")
+        model: OpenRouter model name (e.g., "x-ai/grok-4-fast:free")
         prompt: Text prompt to send to the model
         api_key: OpenRouter API key (if not provided, will get from env)
         site_url: Optional site URL for rankings

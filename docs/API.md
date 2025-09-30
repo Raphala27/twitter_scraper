@@ -14,7 +14,7 @@ Main function for processing tweets with AI analysis.
 def process_tweets_with_openrouter(
     user_or_handle: str,
     limit: int = 2,
-    model: str = "mistralai/mistral-small-3.2-24b-instruct:free",
+    model: str = "x-ai/grok-4-fast:free",
     system_instruction: str = None,
     mock: bool = False,
     use_tools: bool = True
@@ -24,7 +24,7 @@ def process_tweets_with_openrouter(
 **Parameters:**
 - `user_or_handle` (str): Twitter username or handle (e.g., "@trader" or "trader")
 - `limit` (int): Number of tweets to process (default: 2)
-- `model` (str): OpenRouter model name (default: "mistralai/mistral-small-3.2-24b-instruct:free")
+- `model` (str): OpenRouter model name (default: "x-ai/grok-4-fast:free")
 - `system_instruction` (str): Custom system prompt for AI analysis
 - `mock` (bool): Use mock data instead of real API calls (default: False)
 - `use_tools` (bool): Enable AI tools for structured extraction (default: True)

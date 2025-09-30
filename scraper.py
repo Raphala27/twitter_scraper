@@ -95,7 +95,7 @@ def _display_results(
     mock_positions: bool,
     api_provider: str = "coincap",
     validate_sentiment: bool = False,
-    model: str = "mistralai/mistral-small-3.2-24b-instruct:free",
+    model: str = "x-ai/grok-4-fast:free",
     system_msg: Optional[str] = None
 ) -> Optional[dict]:
     """Display results in formatted console output and return structured data."""
@@ -438,7 +438,7 @@ def _display_final_analysis_summary(consolidated_data: dict) -> None:
     # Don't display the dictionary again here - it will be shown after AI analysis
 
 
-def _handle_final_ai_analysis(consolidated_data: dict, model: str = "mistralai/mistral-small-3.2-24b-instruct:free", system_msg: Optional[str] = None) -> None:
+def _handle_final_ai_analysis(consolidated_data: dict, model: str = "x-ai/grok-4-fast:free", system_msg: Optional[str] = None) -> None:
     """Send the complete analysis to OpenRouter for final interpretation and insights."""
     print("\n" + "🤖" * 20 + " ANALYSE FINALE PAR IA " + "🤖" * 20)
     
@@ -506,7 +506,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze crypto sentiment in posts and validate influencer predictions over time.")
     parser.add_argument("user", nargs="?", default="swissborg", help="Twitter numeric user_id or handle (e.g., 44196397 or @elonmusk)")
     parser.add_argument("--limit", type=int, default=2, help="Number of posts to fetch")
-    parser.add_argument("--model", type=str, default="mistralai/mistral-small-3.2-24b-instruct:free", help="OpenRouter model name/tag")
+    parser.add_argument("--model", type=str, default="x-ai/grok-4-fast:free", help="OpenRouter model name/tag")
     parser.add_argument("--system", type=str, default=prompt, help="Optional system instruction to prepend")
     parser.add_argument("--json", action="store_true", help="Output JSON instead of pretty text")
     parser.add_argument("--mock-scraping", action="store_true", help="Fetch posts in mock mode (no API calls)")
@@ -548,7 +548,7 @@ if __name__ == "__main__":
                 except ValueError:
                     print("Invalid number")
             elif choice == "3":
-                model = input("Enter OpenRouter model (e.g., mistralai/mistral-small-3.2-24b-instruct:free): ").strip() or model
+                model = input("Enter OpenRouter model (e.g., x-ai/grok-4-fast:free): ").strip() or model
             elif choice == "4":
                 system_msg = input("Enter system instruction (optional): ").strip() or None
             elif choice == "5":

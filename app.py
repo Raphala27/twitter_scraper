@@ -114,7 +114,7 @@ def bot_analyze():
         ai_analysis = quick_crypto_analysis(
             tweet_content=full_content,
             user=author_handle,
-            model='mistralai/mistral-small-3.2-24b-instruct:free',
+            model='x-ai/grok-4-fast:free',
             tweet_timestamp=timestamp  # Passer le timestamp du tweet pour la validation CoinGecko
         )
         
@@ -122,13 +122,13 @@ def bot_analyze():
         response_text = ai_analysis
         confidence_score = 85.0  # Score élevé car on utilise validation CoinGecko
         
-        # Détecter le sentiment basé sur des mots-clés pour ajuster le score
+        # Detect sentiment based on keywords to adjust score
         ai_lower = ai_analysis.lower()
-        if "0%" in ai_analysis or "faible" in ai_lower or "aucune crypto" in ai_lower:
+        if "0%" in ai_analysis or "weak" in ai_lower or "no crypto" in ai_lower:
             confidence_score = 25.0
-        elif any(word in ai_lower for word in ['excellente', 'bonne', 'précis', 'moon']):
+        elif any(word in ai_lower for word in ['excellent', 'good', 'accurate', 'moon', 'nailed']):
             confidence_score = 90.0
-        elif any(word in ai_lower for word in ['moyenne', 'modérée', 'prudent']):
+        elif any(word in ai_lower for word in ['average', 'moderate', 'cautious', 'mixed']):
             confidence_score = 60.0
         
         # Limiter à 280 caractères pour Twitter
@@ -156,7 +156,7 @@ def bot_analyze():
 def get_models():
     """Get available models."""
     models = [
-        "mistralai/mistral-small-3.2-24b-instruct:free",
+        "x-ai/grok-4-fast:free",
         "microsoft/wizardlm-2-8x22b",
         "anthropic/claude-3-haiku",
         "openai/gpt-3.5-turbo",
