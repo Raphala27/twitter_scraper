@@ -166,28 +166,58 @@ If no crypto is mentioned, return: []
         # 4. Generate final analysis with OpenRouter
         system_msg = "You are an expert crypto analyst with a sense of humor who speaks to the crypto community."
         
-        # Check if we have validation data
+        # Check if we have validation data and extract price information
         has_validation = consolidated_data.get("sentiment_validation", {}).get("validation_status") == "success"
+        
+        # Extract actual price data for the prompt
+        price_info = ""
+        if has_validation:
+            validation_results = consolidated_data.get("sentiment_validation", {}).get("validation_results", [])
+            if validation_results:
+                first_result = validation_results[0]  # Take first crypto analyzed
+                ticker = first_result.get("ticker", "")
+                sentiment = first_result.get("sentiment", "")
+                base_price = first_result.get("base_price", 0)
+                validations = first_result.get("validations", {})
+                
+                # Build price movement info
+                price_moves = []
+                for period in ["1h", "24h", "7d"]:
+                    if period in validations and validations[period].get("target_price"):
+                        change_pct = validations[period].get("price_change_pct", 0)
+                        correct = validations[period].get("correct", False)
+                        status = "✅" if correct else "❌"
+                        price_moves.append(f"{period}: {status} {change_pct:+.1f}%")
+                    else:
+                        price_moves.append(f"{period}: ⚠️ N/A")
+                
+                price_info = f"Price moves for {ticker} (predicted {sentiment}): {', '.join(price_moves)}"
         
         analysis_prompt = f"""
 {system_msg}
 
-You are a crypto analyst talking to crypto bros. Be concise, direct and slightly sarcastic.
+You are a crypto analyst talking to crypto bros. Be EXTREMELY concise.
 
-ANALYSIS DATA:
-{json.dumps(consolidated_data, indent=2, ensure_ascii=False)}
+PRICE DATA:
+{price_info if price_info else "No price validation data available"}
+
+USER INFO:
+- Account: {consolidated_data.get('account', '')}
+- Tweet sentiment: {consolidated_data.get('tweets_analysis', [{}])[0].get('sentiment', 'unknown') if consolidated_data.get('tweets_analysis') else 'unknown'}
+- Crypto: {consolidated_data.get('tweets_analysis', [{}])[0].get('ticker', 'unknown') if consolidated_data.get('tweets_analysis') else 'unknown'}
 
 INSTRUCTIONS:
-Analyze this data and give a SHORT report (max 200 words) with:
+Give a VERY SHORT analysis (max 250 characters total) in this format:
 
-🎯 **THE DEAL**: Who is this and what they predict
-🎯 **THEIR SKILLS**: {"Did they nail it or get rekt? (accuracy %)" if has_validation else "Sentiment analysis without temporal validation"}
-🎯 **FINAL VERDICT**: DYOR or "trust me bro"?
+🎯 THE DEAL: Who and what they predict (max 1 sentence)
+🎯 SKILLS: {f"Use the actual price moves above" if has_validation else "No validation data"} (max 1 sentence) 
+🎯 VERDICT: DYOR or trust? (max 1 sentence)
 
-Style: Crypto Twitter tone, slightly mocking but informative. 
-Stay factual but entertaining. No more than 3-4 sentences per section.
-
-NOTE: {"Temporal validation data is available" if has_validation else "Temporal validation data is not available - base your analysis on detected sentiment only"}
+CRITICAL RULES:
+- MAXIMUM 250 characters total for entire response
+- Use the REAL price data above if available
+- Be direct and punchy
+- No extra words or fluff
         """
         
         # Get final analysis from OpenRouter (THIS IS WHAT WE WANT TO RETURN)
