@@ -26,6 +26,10 @@ except ImportError:
 app = Flask(__name__)
 CORS(app)
 
+# Configure Flask to preserve JSON order and handle Unicode properly
+app.config['JSON_SORT_KEYS'] = False
+app.config['JSON_AS_ASCII'] = False
+
 # Load environment variables
 load_env_file()
 
@@ -82,12 +86,16 @@ def bot_analyze():
         data = request.get_json()
         
         if not data:
-            return jsonify({
+            error_response = {
                 "status": "error",
                 "response_text": "No data provided",
                 "confidence_score": 0.0,
                 "analysis_type": "error"
-            }), 400
+            }
+            return Response(
+                json.dumps(error_response, ensure_ascii=False),
+                mimetype='application/json'
+            ), 400
         
         # Extraire les informations du tweet selon le format demandé
         tweet_id = data.get('tweet_id', '')
@@ -131,26 +139,38 @@ def bot_analyze():
         elif any(word in ai_lower for word in ['average', 'moderate', 'cautious', 'mixed']):
             confidence_score = 60.0
         
-        # Limiter à 280 caractères pour Twitter
+        # Limit to 280 characters for Twitter (safety net)
         if len(response_text) > 280:
             response_text = response_text[:277] + "..."
         
         # Format de réponse exact demandé
-        return jsonify({
+        from flask import Response
+        import json
+        
+        response_data = {
             "status": "success",
             "response_text": response_text,
             "confidence_score": confidence_score,
             "analysis_type": "crypto_sentiment"
-        })
+        }
+        
+        return Response(
+            json.dumps(response_data, ensure_ascii=False, indent=None),
+            mimetype='application/json'
+        )
         
     except Exception as e:
         logger.error(f"Error in bot_analyze: {str(e)}")
-        return jsonify({
+        error_response = {
             "status": "error",
             "response_text": f"Analysis failed: {str(e)[:100]}...",
             "confidence_score": 0.0,
             "analysis_type": "error"
-        }), 500
+        }
+        return Response(
+            json.dumps(error_response, ensure_ascii=False),
+            mimetype='application/json'
+        ), 500
 
 @app.route('/api/models')
 def get_models():
