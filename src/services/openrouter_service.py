@@ -151,7 +151,7 @@ Give a VERY SHORT analysis (max 250 characters total) in this format:
 
 🎯 THE DEAL: Who and what they predict (max 1 sentence)
 🎯 SKILLS: {"Use the actual price moves above" if has_validation else "No validation data"} (max 1 sentence)
-🎯 VERDICT: DYOR or trust? (max 1 sentence)
+🎯 VERDICT: (max 1 sentence)
 
 CRITICAL RULES:
 - MAXIMUM 250 characters total for entire response
